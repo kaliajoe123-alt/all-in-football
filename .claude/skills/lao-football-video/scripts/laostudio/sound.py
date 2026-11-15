@@ -127,8 +127,9 @@ def pick_music(project, mood, lib_dirs, total, seed=0):
     if not mood or str(mood).lower() in ("none", "off", "false"):
         return None, "ບໍ່ມີເພງ"
     cands = [f for f in glob.glob(os.path.join(project, "music.*")) if f.lower().endswith(AUDIO_EXT)]
-    if os.path.isfile(str(mood)):
-        cands = [str(mood)]
+    for f in (str(mood), os.path.join(project, str(mood))):
+        if os.path.isfile(f):
+            cands = [f]
     if not cands:
         for d in lib_dirs:
             for folder in MOODS.get(str(mood), (str(mood),)):

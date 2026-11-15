@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, features
 
 from . import laotext
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # the skill folder
 FONTS = os.path.join(ROOT, "assets", "fonts")
 RAQM = ImageFont.Layout.RAQM if features.check("raqm") else ImageFont.Layout.BASIC
 LAO_RUN = re.compile(r"[຀-໿]+(?:[ ]+(?=[຀-໿]))?|[^຀-໿]+")
@@ -23,9 +23,12 @@ THEME = {
 }
 
 
-def load_brand(name):
+def load_brand(name, project_dir=None):
+    """Brand kit: <project>/brand.json  >  a path  >  assets/brand/<name>.json inside the skill."""
     t = dict(THEME)
-    p = name if os.path.isfile(name) else os.path.join(ROOT, "brand", name + ".json")
+    local = os.path.join(project_dir, "brand.json") if project_dir else ""
+    p = local if os.path.isfile(local) else name if os.path.isfile(name) else \
+        os.path.join(ROOT, "assets", "brand", name + ".json")
     if os.path.isfile(p):
         t.update(json.load(open(p, encoding="utf-8")))
         if t.get("logo") and not os.path.isabs(t["logo"]):
@@ -87,24 +90,60 @@ def text_block(text, size, color, max_w, keys=(), key_color=None, align="center"
                line_h=1.5, say=None, pad=None):
     """Wrapped multi-line RGBA text sprite. '//' or newline in `text` forces a line break."""
     key_color = key_color or color
-    lines_tok = []
+    lines = []                                               # each line = list of (token, is_key)
     for part in re.split(r"\n|//", text):
         toks = laotext.tokenize(part.strip(), say)
-        lines_tok += laotext.wrap_tokens(toks, lambda s: text_w(s, size), max_w) or [[]]
+        pairs = list(zip(toks, key_flags(toks, keys)))       # flags BEFORE wrapping: a key phrase may wrap
+        lines += wrap_pairs(pairs, size, max_w) or [[]]
     pad = stroke + int(size * 0.2) if pad is None else pad
     lh = int(size * line_h)
-    widths = [text_w("".join(l), size) for l in lines_tok]
+    widths = [text_w("".join(t for t, _ in l), size) for l in lines]
     W = int(max(widths + [1])) + 2 * pad
-    H = lh * len(lines_tok) + 2 * pad
+    H = lh * len(lines) + 2 * pad
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    for i, toks in enumerate(lines_tok):
-        flags = key_flags(toks, keys)
+    for i, line in enumerate(lines):
         x = pad + (0 if align == "left" else (W - 2 * pad - widths[i]) / 2)
         base = pad + i * lh + int(size * 1.08)
-        for t, fl in zip(toks, flags):
+        for t, fl in line:
             x = draw_text(d, x, base, t, size, key_color if fl else color, stroke, stroke_fill)
     return im
+
+
+def wrap_pairs(pairs, size, max_w):
+    """Greedy wrap of (token, flag) pairs on token boundaries; never leaves one short word alone at the end."""
+    lines, cur = [], []
+    for tok, fl in pairs:
+        trial = "".join(t for t, _ in cur) + tok
+        if cur and text_w(trial.rstrip(), size) > max_w:
+            lines.append(cur)
+            cur = [] if tok.strip() == "" else [(tok, fl)]
+        else:
+            cur.append((tok, fl))
+    if cur:
+        lines.append(cur)
+    out = []
+    for l in lines:
+        while l and l[0][0].strip() == "":
+            l = l[1:]
+        while l and l[-1][0].strip() == "":
+            l = l[:-1]
+        if l:
+            out.append(l)
+    if len(out) >= 2 and sum(len(t) for t, _ in out[-1]) <= 5:        # orphan: pull one word down
+        prev = out[-2]
+        k = len(prev) - 1
+        while k > 0 and prev[k][0].strip() == "":
+            k -= 1
+        if k > 1:
+            moved = prev[k:]
+            cand = moved + [(" ", False)] * (0 if laotext.is_lao(moved[-1][0]) and laotext.is_lao(out[-1][0][0]) else 1) + out[-1]
+            if text_w("".join(t for t, _ in cand), size) <= max_w:
+                out[-2] = [x for x in prev[:k]]
+                while out[-2] and out[-2][-1][0].strip() == "":
+                    out[-2] = out[-2][:-1]
+                out[-1] = cand
+    return out
 
 
 def rounded(size, radius, fill, outline=None, width=0):
@@ -179,7 +218,7 @@ def paper(w, h, theme, seed=7):
         a[:, x:x + 2] = grid
     for y in range(step // 2, h, step):
         a[y:y + 2, :] = grid
-    a += rng.normal(0, 3.2, (h, w, 1)).astype(np.float32)
+    a += rng.normal(0, 1.8, (h, w, 1)).astype(np.float32)
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     r = np.sqrt(((xx - w / 2) / (w / 2)) ** 2 + ((yy - h / 2) / (h / 2)) ** 2)
     a *= (1 - 0.07 * np.clip(r - 0.55, 0, 1))[..., None]

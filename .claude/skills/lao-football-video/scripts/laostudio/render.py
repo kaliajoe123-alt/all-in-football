@@ -12,8 +12,8 @@ from . import gfx, laotext
 from .footage import VID_EXT
 
 LAYOUT = {
-    "16:9": dict(W=1920, H=1080, card=(312, 84, 1296, 729), cap_y=956, cap_size=54, cap_w=1560, cap_lines=1,
-                 logo_w=150, logo_xy=(1714, 40), badge_xy=(56, 44), handle_y=832, title_size=108, title_w=1560,
+    "16:9": dict(W=1920, H=1080, card=(312, 100, 1296, 729), cap_y=966, cap_size=54, cap_w=1560, cap_lines=1,
+                 logo_w=150, logo_xy=(1714, 40), badge_xy=(56, 40), handle_y=846, title_size=108, title_w=1560,
                  title_y=500, label_size=46, stat_num=150, stat_cap=42, chapter_size=120, margin=56),
     "9:16": dict(W=1080, H=1920, card=(54, 440, 972, 729), cap_y=1338, cap_size=60, cap_w=950, cap_lines=2,
                  logo_w=150, logo_xy=(876, 236), badge_xy=(54, 246), handle_y=1188, title_size=96, title_w=960,
@@ -316,7 +316,7 @@ class Renderer:
         num, _, cap = text.partition("=")
         L = self.L
         n = gfx.text_block(num.strip(), L["stat_num"], self.acc, 900, pad=0, line_h=1.25, say=self.say)
-        c = gfx.text_block(cap.strip(), L["stat_cap"], self.ink, max(380, n.size[0] + 60), pad=0, say=self.say) \
+        c = gfx.text_block(cap.strip(), L["stat_cap"], self.ink, max(560, n.size[0] + 80), pad=0, say=self.say) \
             if cap.strip() else None
         w = max(n.size[0], c.size[0] if c else 0) + 80
         h = n.size[1] + (c.size[1] if c else 0) + 44
@@ -353,9 +353,12 @@ class Renderer:
             sp, m = self._stat(sh["stat"])
             p = 1.0 if sh.get("stat_hold") else (lt - 0.3) / 0.3
             if p > 0:
-                gfx.paste(frame, sp, x + w - sp.size[0] / 2 + m - 40 - (sp.size[0] - 2 * m) / 2,
-                          y + 26 + sp.size[1] / 2 - m, alpha=gfx.clamp(p * 2),
-                          scale=0.55 + 0.45 * gfx.back(p), anchor="c")
+                iw, ih = sp.size[0] - 2 * m, sp.size[1] - 2 * m
+                if self.meta["aspect"] == "9:16":             # sits on the card's top edge
+                    cx_, cy_ = x + w - 20 - iw / 2, y + ih * 0.2
+                else:                                         # hangs off the card's right edge (clear of faces)
+                    cx_, cy_ = min(self.W - 30 - iw / 2, x + w + 96 - iw / 2), y + 34 + ih / 2
+                gfx.paste(frame, sp, cx_, cy_, alpha=gfx.clamp(p * 2), scale=0.55 + 0.45 * gfx.back(p), anchor="c")
         if sh.get("quote"):
             sp = self._quote(sh["quote"], w - 80)
             p = (lt - 0.15) / 0.25
@@ -529,7 +532,7 @@ def _worker(args):
     return out
 
 
-def render(rd, out_path, workers=None, crf=19, tmp_dir=None):
+def render(rd, out_path, workers=None, crf=21, tmp_dir=None):
     """Render all frames with `workers` processes and join the parts (video only, no audio)."""
     workers = workers or max(1, os.cpu_count() or 2)
     tmp_dir = tmp_dir or os.path.join(rd.dir, ".cache", "parts")

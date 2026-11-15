@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# ຕົວເອີ້ນໃຊ້ Lao Video Studio:  ./video-studio/studio run video-studio/projects/<ຊື່>
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$here/../.claude/skills/lao-football-video/scripts${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m laostudio "$@"

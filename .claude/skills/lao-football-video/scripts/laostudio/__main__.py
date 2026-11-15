@@ -19,7 +19,7 @@ def main(argv=None):
         r = sub.add_parser(name); r.add_argument("project")
         r.add_argument("--aspect", choices=["16:9", "9:16"]); r.add_argument("--both", action="store_true")
         r.add_argument("--workers", type=int); r.add_argument("--offline", action="store_true")
-        r.add_argument("--force", action="store_true"); r.add_argument("--crf", type=int, default=19)
+        r.add_argument("--force", action="store_true"); r.add_argument("--crf", type=int, default=21)
     a = ap.parse_args(argv)
     try:
         if a.cmd == "new":

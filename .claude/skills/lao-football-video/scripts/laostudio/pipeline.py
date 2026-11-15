@@ -24,7 +24,7 @@ def slugify(s):
     return s[:60] or "video"
 
 
-def run(project, aspect=None, workers=None, offline=False, force=False, plan_only=False, crf=19):
+def run(project, aspect=None, workers=None, offline=False, force=False, plan_only=False, crf=21):
     t0 = time.time()
     project = os.path.abspath(project)
     doc = script.parse(os.path.join(project, "script.md"))
@@ -42,7 +42,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
             log("  ✗ " + p)
         if not force:
             raise script.ScriptError("ແກ້ script.md ກ່ອນ (ຫຼື ໃຊ້ --force)")
-    theme = gfx.load_brand(str(meta.get("brand", "allin")))
+    theme = gfx.load_brand(str(meta.get("brand", "allin")), project)
     cache = os.path.join(project, ".cache")
     out_dir = os.path.join(project, "out")
     os.makedirs(cache, exist_ok=True); os.makedirs(out_dir, exist_ok=True)
@@ -66,6 +66,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     for sh in tl["shots"]:
         if sh["kind"] == "media" and sh.get("media"):
             sh["asset"] = finder.find(sh["media"])
+            sh["file"] = finder.titles.get(sh["asset"]) or (os.path.basename(sh["asset"]) if sh["asset"] else None)
     srcs = sorted({c["source"] for c in finder.credits})
     meta["_credit_line"] = ("ຮູບປະກອບ: " + ", ".join(srcs) + " · ລາຍຊື່ເຈົ້າຂອງຮູບຢູ່ໃນຄຳບັນຍາຍ") if srcs else ""
     if finder.missing:
@@ -76,12 +77,14 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     plan = {"total": round(tl["total"], 2), "aspect": meta["aspect"], "voice": eng,
             "shots": [{k: (round(v, 2) if isinstance(v, float) else v) for k, v in s.items()
                        if k in ("i", "kind", "start", "end", "layout", "tr", "kb", "label", "stat", "quote", "title",
-                                "asset", "media")} for s in tl["shots"]]}
+                                "file", "media")} for s in tl["shots"]]}
     json.dump(plan, open(os.path.join(out_dir, name + "_plan.json"), "w", encoding="utf-8"), ensure_ascii=False,
               indent=1)
     media_shots = [s["end"] - s["start"] for s in tl["shots"] if s["kind"] == "media"]
     log(f"      ຍາວ {tl['total']:.1f} ວິ · {len(tl['shots'])} ຊັອດ · ສະເລ່ຍ {np.mean(media_shots):.1f} ວິ/ຊັອດ")
+    _footage_sheet(tl, os.path.join(out_dir, name + "_footage.jpg"))
     if plan_only:
+        log("ແຜນ: " + os.path.join(out_dir, name + "_plan.json") + "  ·  ກວດຮູບ: " + name + "_footage.jpg")
         return {"plan": os.path.join(out_dir, name + "_plan.json"), "missing": finder.missing}
 
     # 3 ── narration track --------------------------------------------------------------------
@@ -115,6 +118,17 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     if r.returncode != 0:
         raise RuntimeError("mux failed: " + r.stderr[-400:])
 
+    clean = None
+    if meta.get("capcut"):
+        log("      CapCut: render ສະບັບບໍ່ມີຄຳບັນຍາຍ")
+        m2 = dict(meta); m2["captions"] = False
+        rd2 = render.Renderer(tl, m2, theme, project)
+        silent2 = os.path.join(cache, "silent_clean.mp4")
+        render.render(rd2, silent2, workers=workers, crf=crf, tmp_dir=os.path.join(cache, "parts_clean"))
+        clean = os.path.join(out_dir, name + "_clean.mp4")
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", silent2, "-i", mix, "-c:v", "copy", "-c:a", "copy",
+                        "-shortest", "-movflags", "+faststart", clean], check=True)
+
     # 6 ── package ----------------------------------------------------------------------------
     log("[6/6] ຈັດຊຸດສົ່ງ: ໜ້າປົກ, caption, SRT, credits, QA")
     cover = os.path.join(out_dir, name + "_cover.jpg")
@@ -141,8 +155,8 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
         tags = str(meta.get("hashtags") or "#ເຕະບານ #ບານເຕະ #football #ALLIN").strip()
         f.write(cap + "\n\n" + tags + "\n")
         if finder.credits:
-            auth = sorted({c["author"] for c in finder.credits if c["author"] != "?"})[:12]
-            f.write("\n📷 " + ", ".join(auth) + " (Wikimedia Commons, CC BY / CC BY-SA)\n")
+            auth = sorted({c["author"][:45] for c in finder.credits if c["author"] != "?"})
+            f.write("\n📷 " + ", ".join(auth) + " (" + ", ".join(srcs) + " — ລິຂະສິດແຕ່ລະຮູບຢູ່ໃນ credits)\n")
     qa = os.path.join(out_dir, name + "_qa.jpg")
     _qa_sheet(final, tl, meta, qa)
     for k, p in stems.items():
@@ -150,7 +164,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
             shutil.copy(p, os.path.join(out_dir, f"{name}_stem_{k}.wav"))
     dur = render.probe_duration(final)
     report = {"video": final, "cover": cover, "caption": post, "srt": srt, "credits": credits, "qa_sheet": qa,
-              "duration": round(dur, 2), "shots": len(tl["shots"]), "avg_shot": round(float(np.mean(media_shots)), 2),
+              "clean_video": clean, "duration": round(dur, 2), "shots": len(tl["shots"]), "avg_shot": round(float(np.mean(media_shots)), 2),
               "voice": eng, "voice_removed_pauses": round(removed, 2), "music": music_name,
               "missing_footage": sorted(set(finder.missing)), "problems": probs,
               "placeholders": sum(1 for s in tl["shots"] if s["kind"] == "media" and not s.get("asset")),
@@ -159,6 +173,44 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
               ensure_ascii=False, indent=1)
     log(f"ສຳເລັດ: {final}  ({dur:.1f} ວິ, ໃຊ້ເວລາ {time.time() - t0:.0f} ວິ)")
     return report
+
+
+def _footage_sheet(tl, out):
+    """Numbered thumbnails of every picked picture/clip, so a wrong picture is caught BEFORE rendering."""
+    from PIL import ImageDraw
+    cells = []
+    for s in tl["shots"]:
+        if s["kind"] != "media":
+            continue
+        cell = Image.new("RGB", (320, 214), (40, 20, 20))
+        p = s.get("asset")
+        try:
+            if p and render.is_video(p):
+                r = subprocess.run(["ffmpeg", "-v", "error", "-ss", "1", "-i", p, "-frames:v", "1", "-f", "image2pipe",
+                                    "-vcodec", "png", "-"], capture_output=True)
+                import io
+                im = Image.open(io.BytesIO(r.stdout)).convert("RGB")
+            elif p:
+                im = Image.open(p); im.draft("RGB", (640, 640)); im = im.convert("RGB")
+            else:
+                im = None
+            if im:
+                cell.paste(gfx.cover_fit_plain(im, 320, 180, 0.3), (0, 0))
+        except Exception:
+            pass
+        d = ImageDraw.Draw(cell)
+        q = (s.get("media") or {}).get("q", "")
+        tag = f"#{s['i']} {s['start']:.0f}s  " + (q if p else "MISSING: " + q)
+        d.rectangle((0, 180, 320, 214), fill=(16, 26, 58) if p else (150, 20, 20))
+        gfx.draw_text(d, 6, 205, tag[:44], 19, (255, 255, 255))
+        cells.append(cell)
+    if not cells:
+        return
+    cols = 6
+    sheet = Image.new("RGB", (cols * 320, ((len(cells) + cols - 1) // cols) * 214), (20, 20, 24))
+    for i, c in enumerate(cells):
+        sheet.paste(c, ((i % cols) * 320, (i // cols) * 214))
+    sheet.save(out, quality=85)
 
 
 def _qa_sheet(video, tl, meta, out):

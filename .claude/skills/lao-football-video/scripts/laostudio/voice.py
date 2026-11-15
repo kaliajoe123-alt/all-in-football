@@ -228,26 +228,57 @@ def align_recording(path, lines, cfg):
     removed = 0.0
     if cfg.get("tighten", True):
         y, removed = tighten(y, speech_spans(y))
-    spans = speech_spans(y)
+    spans = speech_spans(y, min_sil=0.15)
     total = len(y) / SR
     plans = [laotext.speech_plan(t, say) for t in lines]
     weights = [max(1, sum(1 for c in p[1] if not c.isspace())) for p in plans]
-    speech_total = sum(b - a for a, b in spans) or total
-    # walk through speech time: sentence i ends after its share of speech; snap to the nearest pause
-    def speech_to_abs(s):
-        for a, b in spans:
-            if s <= b - a:
-                return a + s
-            s -= b - a
-        return total
-    pauses = [(spans[i][1] + spans[i + 1][0]) / 2 for i in range(len(spans) - 1)]
-    bounds, acc = [spans[0][0] if spans else 0.0], 0.0
-    for w in weights[:-1]:
-        acc += w / sum(weights) * speech_total
-        t = speech_to_abs(acc)
-        near = [p for p in pauses if abs(p - t) < 1.5 and p > bounds[-1] + 0.4]
-        bounds.append(min(near, key=lambda p: abs(p - t)) if near else t)
-    bounds.append(spans[-1][1] if spans else total)
+    if not spans:
+        spans = [[0.0, total]]
+    # pauses between speech spans: (time, speech seconds before it, pause length)
+    pauses, acc = [], 0.0
+    for i in range(len(spans) - 1):
+        acc += spans[i][1] - spans[i][0]
+        pauses.append(((spans[i][1] + spans[i + 1][0]) / 2, acc, spans[i + 1][0] - spans[i][1]))
+    speech_total = acc + spans[-1][1] - spans[-1][0]
+    expect = [w / sum(weights) * speech_total for w in weights]
+    n, P = len(lines), len(pauses)
+    bounds = None
+    if P >= n - 1 and n > 1:
+        # dynamic programming: put the n-1 sentence breaks on pauses so every sentence gets about its
+        # share of speech time; longer pauses are preferred (people pause longer between sentences)
+        INF = float("inf")
+        cost = [[INF] * P for _ in range(n - 1)]
+        back = [[-1] * P for _ in range(n - 1)]
+        def seg(d, e, gap):
+            return ((d - e) / e) ** 2 - 0.25 * min(gap, 0.6)
+        for j in range(P):
+            cost[0][j] = seg(pauses[j][1], expect[0], pauses[j][2])
+        for i in range(1, n - 1):
+            for j in range(i, P):
+                best, arg = INF, -1
+                for k in range(i - 1, j):
+                    if cost[i - 1][k] < INF:
+                        c = cost[i - 1][k] + seg(pauses[j][1] - pauses[k][1], expect[i], pauses[j][2])
+                        if c < best:
+                            best, arg = c, k
+                cost[i][j], back[i][j] = best, arg
+        j = min(range(P), key=lambda j: cost[n - 2][j] + ((speech_total - pauses[j][1] - expect[-1]) / expect[-1]) ** 2)
+        idx = [j]
+        for i in range(n - 2, 0, -1):
+            j = back[i][j]; idx.append(j)
+        bounds = [spans[0][0]] + [pauses[j][0] for j in reversed(idx)] + [spans[-1][1]]
+    if bounds is None:                                      # too few pauses: split by share of speech time
+        def speech_to_abs(sv):
+            for a, b in spans:
+                if sv <= b - a:
+                    return a + sv
+                sv -= b - a
+            return total
+        bounds, acc = [spans[0][0]], 0.0
+        for e in expect[:-1]:
+            acc += e
+            bounds.append(max(bounds[-1] + 0.3, speech_to_abs(acc)))
+        bounds.append(spans[-1][1])
     out = []
     for i, (toks, spoken, sp, missing) in enumerate(plans):
         a, b = bounds[i], bounds[i + 1]

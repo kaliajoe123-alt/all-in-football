@@ -11,7 +11,10 @@ import hashlib, html, json, os, re, subprocess, tempfile, time, urllib.parse
 
 from .voice import CACHE
 
-UA = "LaoVideoStudio/1.0 (football explainer videos; contact via repository)"
+# Wikimedia asks bots for a contact in the User-Agent; set LAOSTUDIO_CONTACT=you@example.com (or a URL)
+# to get more generous rate limits. Without it requests still work, only slower.
+UA = "LaoVideoStudio/1.0 (football explainer videos" + (
+    "; " + os.environ["LAOSTUDIO_CONTACT"] if os.environ.get("LAOSTUDIO_CONTACT") else "") + ")"
 IMG_EXT = (".jpg", ".jpeg", ".png", ".webp")
 VID_EXT = (".mp4", ".mov", ".mkv", ".webm", ".m4v")
 SKIP_WORDS = ("logo", "icon", "map", "flag", "kit ", "kit_", "diagram", "chart", "signature", "crest", "badge",
@@ -62,7 +65,7 @@ def _curl(url, dest=None, headers=None, min_gap=2.0, tries=3):
         if code == "429":
             m = re.search(r"retry-after:\s*(\d+)", head)
             ra = int(m.group(1)) if m else 60
-            if ra > 45 or attempt == tries - 1:
+            if ra > 70 or attempt == tries - 1:
                 _blocked[host] = time.time() + ra
                 raise RateLimited(f"{host} ຈຳກັດຄວາມໄວ (429) — ລອງໃໝ່ໃນ {ra} ວິນາທີ")
             time.sleep(ra + 1)
@@ -82,6 +85,17 @@ def _get_json(url, headers=None):
     return data
 
 
+def _thumb_url(url, width):
+    """Standard-size rendition on thumb.wikimedia.org (originals on upload.wikimedia.org are throttled hard)."""
+    m = re.match(r"https://upload\.wikimedia\.org/wikipedia/commons/(\w/\w\w)/([^?]+)", url or "")
+    if not m:
+        return None
+    size = next((s for s in (1920, 1280, 960) if s < width), None)
+    if not size:
+        return None
+    return f"https://thumb.wikimedia.org/wikipedia/commons/thumb/{m.group(1)}/{m.group(2)}/{size}px-{m.group(2)}"
+
+
 class Finder:
     def __init__(self, project_dir, cfg, online=True):
         self.project = project_dir
@@ -89,7 +103,7 @@ class Finder:
         self.dirs = [os.path.join(project_dir, "assets")]
         lib = os.environ.get("LAOSTUDIO_LIBRARY", "")
         self.dirs += [d for d in lib.split(os.pathsep) if d] + list(cfg.get("library", []) or [])
-        self.used, self.credits, self.missing, self._search = set(), [], [], {}
+        self.used, self.credits, self.missing, self._search, self.titles = set(), [], [], {}, {}
         self.index = []
         for d in self.dirs:
             for root, _, files in os.walk(d) if os.path.isdir(d) else []:
@@ -139,18 +153,24 @@ class Finder:
             if kind == "video":
                 if not mime.startswith("video/") or size > 80e6:
                     continue
-            elif mime not in ("image/jpeg", "image/png") or min(w, h) < 500 or w < 800 or size > 30e6:
+            elif mime not in ("image/jpeg", "image/png") or min(w, h) < 600 or w < 1000:
                 continue
             em = ii.get("extmetadata", {})
             artist = re.sub(r"<[^>]+>", "", html.unescape(em.get("Artist", {}).get("value", ""))).strip()
             url_ = ii.get("url")
             thumb = ii.get("thumburl", "")
-            if kind != "video" and size > 4e6 and urllib.parse.urlparse(thumb).netloc == "upload.wikimedia.org":
-                url_ = thumb
+            if kind != "video":                               # scaled renditions: small + far less rate-limited
+                url_ = _thumb_url(url_, w) or thumb or url_
             res.append({"url": url_, "title": title.replace("File:", ""), "w": w, "h": h,
                         "license": em.get("LicenseShortName", {}).get("value", "?"),
                         "author": re.sub(r"\s+", " ", artist)[:80] or "?", "page": ii.get("descriptionurl", ""),
                         "source": "Wikimedia Commons"})
+        words = [w for w in _norm(q).split() if len(w) > 2]
+        def score(r):
+            name = _norm(r["title"])
+            hit = sum(1 for w in words if w in name)
+            return (-(hit == len(words)), -hit, -(r["w"] >= r["h"]))        # stable: keeps search order inside ties
+        res.sort(key=score)
         self._search[key] = res
         return res
 
@@ -228,6 +248,7 @@ class Finder:
                     break
                 continue
             self.used.add(item["url"])
+            self.titles[path] = item["title"]
             if not any(c["title"] == item["title"] for c in self.credits):
                 self.credits.append({k: item[k] for k in ("title", "author", "license", "page", "source")})
             return path

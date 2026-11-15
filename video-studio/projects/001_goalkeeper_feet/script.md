@@ -24,12 +24,12 @@ caption: |
 hashtags: "#ເຕະບານ #ຜູ້ຮັກສາປະຕູ #Ederson #Neuer #ManCity #football #ALLIN"
 ---
 # ເປີດເລື່ອງ
-[img: goalkeeper kicking ball football | full] ຮູ້ບໍ່ວ່າ ຜູ້ຮັກສາປະຕູຍຸກນີ້ *ເຊຟບານເກັ່ງຢ່າງດຽວ* ບໍ່ພໍແລ້ວ!
-[img: Ederson Manchester City | label: Ederson] ທີມໃຫຍ່ຍອມຈ່າຍເງິນຫຼາຍສິບລ້ານ ເພື່ອຊື້ຜູ້ຮັກສາປະຕູ ທີ່ *ຈ່າຍບານດ້ວຍຕີນ* ໄດ້ຄືກອງກາງ.
-[img: association football goalkeeper pass] ຄຳຖາມຄື ມັນເລີ່ມມາຈາກໃສ ແລະ ເປັນຫຍັງມັນຈຶ່ງປ່ຽນເກມເຕະບານໄປຕະຫຼອດການ?
+[img: Ederson Moraes; goalkeeper goal kick | full] ຮູ້ບໍ່ວ່າ ຜູ້ຮັກສາປະຕູຍຸກນີ້ *ເຊຟບານເກັ່ງຢ່າງດຽວ* ບໍ່ພໍແລ້ວ!
+[img: Ederson Harry Kane; Ederson Moraes Fenerbahçe | label: Ederson] ທີມໃຫຍ່ຍອມຈ່າຍເງິນຫຼາຍສິບລ້ານ ເພື່ອຊື້ຜູ້ຮັກສາປະຕູ ທີ່ *ຈ່າຍບານດ້ວຍຕີນ* ໄດ້ຄືກອງກາງ.
+[img: Aston Villa goalkeeper goal kick; goalkeeper football match save] ຄຳຖາມຄື ມັນເລີ່ມມາຈາກໃສ ແລະ ເປັນຫຍັງມັນຈຶ່ງປ່ຽນເກມເຕະບານໄປຕະຫຼອດການ?
 
 # ກົດທີ່ປ່ຽນທຸກຢ່າງ
-[img: 1990 FIFA World Cup stadium | stat: 2.21 = ປະຕູຕໍ່ນັດ ຕ່ຳສຸດໃນປະຫວັດສາດ | src: FIFA — ສະຖິຕິບານເຕະໂລກ 1990] ບານເຕະໂລກປີ 1990 ຍິງກັນສະເລ່ຍພຽງ *2.21* ປະຕູຕໍ່ນັດ ເຊິ່ງຕ່ຳທີ່ສຸດໃນປະຫວັດສາດ.
+[img: Stadio Olimpico Rome football; San Siro stadium 1990 | stat: 2.21 = ປະຕູຕໍ່ນັດ ຕ່ຳສຸດໃນປະຫວັດສາດ | src: FIFA — ສະຖິຕິບານເຕະໂລກ 1990] ບານເຕະໂລກປີ 1990 ຍິງກັນສະເລ່ຍພຽງ *2.21* ປະຕູຕໍ່ນັດ ເຊິ່ງຕ່ຳທີ່ສຸດໃນປະຫວັດສາດ.
 [img: goalkeeper holding ball football] ເຫດຜົນໜຶ່ງກໍຄື ກອງຫຼັງມັກສົ່ງບານຄືນ ໃຫ້ຜູ້ຮັກສາປະຕູຈັບຖ່ວງເວລາ.
 [text: ປີ *1992* ກົດຫ້າມຈັບບານສົ່ງຄືນ | sfx: impact | src: IFAB Laws of the Game 1992 (back-pass rule)] ປີ 1992 FIFA ຈຶ່ງອອກກົດໃໝ່ ຫ້າມຜູ້ຮັກສາປະຕູໃຊ້ມືຈັບບານ ທີ່ເພື່ອນຮ່ວມທີມຕັ້ງໃຈເຕະສົ່ງຄືນ.
 [img: goalkeeper goal kick] ນັບແຕ່ມື້ນັ້ນ ຜູ້ຮັກສາປະຕູທຸກຄົນ ຕ້ອງຝຶກ *ຫຼິ້ນບານດ້ວຍຕີນ* ຢ່າງຫຼີກລ່ຽງບໍ່ໄດ້.
@@ -43,9 +43,9 @@ hashtags: "#ເຕະບານ #ຜູ້ຮັກສາປະຕູ #Ederson #N
 [img: Pep Guardiola Manchester City | label: Pep Guardiola] ປີ 2016 *Pep Guardiola* ມາຄຸມ Man City ແລະ ຕັດສິນໃຈເລື່ອງທີ່ທຸກຄົນຕົກໃຈ.
 [img: Joe Hart | label: Joe Hart] ລາວປ່ອຍ *Joe Hart* ຜູ້ຮັກສາປະຕູມືໜຶ່ງຂອງອັງກິດ ອອກຈາກທີມ ເພາະຈ່າຍບານບໍ່ຄົມພໍ.
 [img: Ederson goalkeeper | label: Ederson | stat: £35M = ຄ່າຕົວຈາກ Benfica | src: BBC Sport, ມິຖຸນາ 2017] ປີ 2017 ລາວຈ່າຍປະມານ 35 ລ້ານປອນ ຊື້ *Ederson* ມາຈາກ Benfica.
-[img: Manchester City 2018 Premier League champions | stat: 100 = ຄະແນນ ສະຖິຕິໃໝ່ຂອງລີກ | flash | src: Premier League 2017-18] ລະດູການນັ້ນ Man City ຄວ້າແຊ້ມດ້ວຍ *100 ຄະແນນ* ເຊິ່ງເປັນສະຖິຕິສູງສຸດຂອງພຣີເມຍລີກ.
-[img: Ederson | stat: 75.35 m = ສະຖິຕິໂລກ ເຕະບານໄກສຸດ | src: Guinness World Records, 2018] ສ່ວນ Ederson ຍັງເຮັດສະຖິຕິໂລກ ເຕະບານຈາກມືໄກເຖິງ 75.35 ແມັດ.
+[img: Etihad Stadium Manchester; Manchester City supporters | stat: 100 = ຄະແນນ ສະຖິຕິໃໝ່ຂອງລີກ | flash | src: Premier League 2017-18] ລະດູການນັ້ນ Man City ຄວ້າແຊ້ມດ້ວຍ *100 ຄະແນນ* ເຊິ່ງເປັນສະຖິຕິສູງສຸດຂອງພຣີເມຍລີກ.
+[img: Ederson Moraes #3; Ederson goalkeeper Brazil | stat: 75.35 m = ສະຖິຕິໂລກ ເຕະບານໄກສຸດ | src: Guinness World Records, 2018] ສ່ວນ Ederson ຍັງເຮັດສະຖິຕິໂລກ ເຕະບານຈາກມືໄກເຖິງ 75.35 ແມັດ.
 
 # ບົດສະຫຼຸບ
 [img: goalkeeper training football] ມື້ນີ້ ຜູ້ຮັກສາປະຕູບໍ່ແມ່ນພຽງຄົນສຸດທ້າຍທີ່ປ້ອງກັນ ແຕ່ເປັນ *ຄົນທຳອິດທີ່ເລີ່ມເກມບຸກ*.
-[img: football stadium crowd | full] ແລ້ວເຈົ້າເດ ຄິດວ່າຜູ້ຮັກສາປະຕູຄົນໃດ ຈ່າຍບານເກັ່ງທີ່ສຸດໃນໂລກ? ຄອມເມັ້ນບອກກັນແດ່!
+[img: Etihad Stadium Manchester #2; Wembley Stadium football crowd | full] ແລ້ວເຈົ້າເດ ຄິດວ່າຜູ້ຮັກສາປະຕູຄົນໃດ ຈ່າຍບານເກັ່ງທີ່ສຸດໃນໂລກ? ຄອມເມັ້ນບອກກັນແດ່!
