@@ -40,3 +40,9 @@ next-env.d.ts
 /.sites-runtime/
 /outputs/
 /work/
+
+# Lao video studio
+video-studio/projects/*/.cache/
+video-studio/projects/*/out/
+__pycache__/
+*.pyc

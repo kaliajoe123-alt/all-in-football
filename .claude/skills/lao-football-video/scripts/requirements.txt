@@ -1,0 +1,6 @@
+numpy
+pillow
+pyyaml
+laonlp
+onnxruntime
+# optional: Microsoft Lao neural voices (needs open internet):  pip install edge-tts
