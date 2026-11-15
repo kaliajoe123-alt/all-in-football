@@ -71,8 +71,8 @@ def draw_text(d, x, base, text, size, fill, stroke=0, stroke_fill=None):
     return x
 
 
-def key_flags(tokens, keys):
-    """Which tokens are key words: inside a *starred* phrase, or a number."""
+def key_flags(tokens, keys, numbers=True):
+    """Which tokens are key words: inside a *starred* phrase, or (optionally) a number."""
     text = "".join(tokens)
     marks = [False] * len(text)
     for k in keys:
@@ -81,7 +81,7 @@ def key_flags(tokens, keys):
                 marks[i] = True
     out, pos = [], 0
     for t in tokens:
-        out.append(bool(t.strip()) and (any(marks[pos:pos + len(t)]) or bool(laotext.NUM.fullmatch(t))))
+        out.append(bool(t.strip()) and (any(marks[pos:pos + len(t)]) or (numbers and bool(laotext.NUM.fullmatch(t)))))
         pos += len(t)
     return out
 

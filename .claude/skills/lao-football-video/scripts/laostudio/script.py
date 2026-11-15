@@ -10,7 +10,7 @@ import yaml
 
 from . import laotext
 
-DEFAULTS = {"aspect": "16:9", "voice": "mms", "speed": 1.0, "music": "tension", "fps": 30, "captions": True,
+DEFAULTS = {"aspect": "16:9", "voice": "vox:thum", "speed": 1.0, "music": "tension", "fps": 30, "captions": "key",
             "show": "", "handle": "", "narrator": "", "say": {}, "gap": 0.26, "chapter_cards": True,
             "max_shot": 4.4, "cta": "ກົດຕິດຕາມ ແລ້ວຄອມເມັ້ນບອກແດ່!", "brand": "allin"}
 FLAGS = {"full", "card", "slow", "flash", "nocap"}

@@ -49,14 +49,20 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     lines = [l["text"] for c in doc["chapters"] for l in c["lines"]]
 
     # 1 ── voice ------------------------------------------------------------------------------
-    eng = str(meta.get("voice", "mms"))
+    eng = str(meta.get("voice", "vox:thum"))
     removed = 0.0
     if eng.startswith("file:"):
         log(f"[1/6] ສຽງພາກ: ໃຊ້ໄຟລ໌ອັດສຽງ {eng[5:]}")
         sents, rec, removed = voice.align_recording(os.path.join(project, eng[5:]), lines, meta)
     else:
+        if eng.startswith("vox"):
+            try:
+                import voxcpm  # noqa: F401
+            except ImportError:
+                raise script.ScriptError("ສຽງ vox ຍັງບໍ່ໄດ້ຕິດຕັ້ງ — ແລ່ນ: bash .claude/skills/lao-football-video/"
+                                         "scripts/setup.sh --vox  (ຫຼື ໃຊ້ voice: mms ສຳລັບຮ່າງ)")
         log(f"[1/6] ສຽງພາກ: ສັງເຄາະ {len(lines)} ປະໂຫຍກ ດ້ວຍ {eng}")
-        sents, rec = voice.synth_sentences(lines, meta, os.path.join(cache, "voice")), None
+        sents, rec = voice.synth_sentences(lines, meta, os.path.join(cache, "voice"), project), None
     tl = script.build_timeline(doc, sents)
     meta["_hook_end"] = float(min(4.0, max(2.6, tl["sentences"][0]["end"])))
 
@@ -121,7 +127,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     clean = None
     if meta.get("capcut"):
         log("      CapCut: render ສະບັບບໍ່ມີຄຳບັນຍາຍ")
-        m2 = dict(meta); m2["captions"] = False
+        m2 = dict(meta); m2["captions"] = "off"
         rd2 = render.Renderer(tl, m2, theme, project)
         silent2 = os.path.join(cache, "silent_clean.mp4")
         render.render(rd2, silent2, workers=workers, crf=crf, tmp_dir=os.path.join(cache, "parts_clean"))
@@ -134,11 +140,9 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     cover = os.path.join(out_dir, name + "_cover.jpg")
     rd.cover().save(cover, quality=93)
     srt = os.path.join(out_dir, name + ".srt")
-    with open(srt, "w", encoding="utf-8") as f:
-        for i, (a, b, si, idx, flags, timed) in enumerate(rd.caps, 1):
-            toks = tl["sentences"][si]["tokens_all"]
-            text = "\n".join("".join(toks[j] for j in line).strip() for line in idx)
-            f.write(f"{i}\n{_ts(a)} --> {_ts(b)}\n{text}\n\n")
+    with open(srt, "w", encoding="utf-8") as f:              # full narration, whatever is burned into the picture
+        for i, sent in enumerate(tl["sentences"], 1):
+            f.write(f"{i}\n{_ts(sent['start'])} --> {_ts(sent['end'])}\n{sent['text']}\n\n")
     credits = os.path.join(out_dir, name + "_credits.txt")
     with open(credits, "w", encoding="utf-8") as f:
         f.write("ແຫຼ່ງຮູບ / Image credits\n")
@@ -149,6 +153,8 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
             f.write("\nແຫຼ່ງຂໍ້ມູນ / Sources\n" + "".join(f"- {s}\n" for s in dict.fromkeys(srcs_txt)))
         if eng == "mms":
             f.write("\nສຽງພາກ: Meta MMS-TTS Lao (CC BY-NC 4.0) — ໃຊ້ສະເພາະວຽກບໍ່ຫວັງກຳໄລ / ຮ່າງ\n")
+        elif eng.startswith("vox"):
+            f.write("\nສຽງພາກ: ສຽງສັງເຄາະ AI (VoxCPM2, Apache-2.0) — ຄວນບອກຜູ້ຊົມວ່າເປັນສຽງ AI\n")
     post = os.path.join(out_dir, name + "_caption.txt")
     with open(post, "w", encoding="utf-8") as f:
         cap = str(meta.get("caption") or f"{meta['title_plain']}\n\n{meta.get('cta', '')}").strip()
@@ -252,7 +258,7 @@ title: ຫົວຂໍ້ທີ່ດຶງດູດ ມີ *ຄຳສຳຄັ�
 show: ຝອຍນອກເກມ
 handle: "@ALLINFootball"
 aspect: "16:9"          # 16:9 (YouTube/Facebook) ຫຼື 9:16 (TikTok/Reels)
-voice: mms              # mms | edge:female | edge:male | file:voice.m4a
+voice: "vox:thum"       # vox:thum|khem|num|nang|sao | file:voice.m4a | mms (ຮ່າງໄວ)
 music: tension          # epic | tension | sad | fun | none
 say:                    # ຄຳອ່ານລາວຂອງຊື່ພາສາອັງກິດ
   Pep Guardiola: ເປບ ກວາດິໂອລາ

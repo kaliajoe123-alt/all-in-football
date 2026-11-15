@@ -4,7 +4,7 @@ slug: goalkeeper_feet
 show: ເລື່ອງໃນເດີ່ນຫຍ້າ
 handle: "@ALLINFootball"
 aspect: "16:9"
-voice: mms
+voice: "vox:thum"
 music: tension
 cta: ກົດຕິດຕາມ ແລ້ວຄອມເມັ້ນບອກແດ່!
 say:

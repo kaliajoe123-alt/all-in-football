@@ -4,6 +4,11 @@
   check <project>                      ກວດ script.md (ຄຳອ່ານ, ຄຳສັ່ງ) ໂດຍບໍ່ render
   plan  <project>                      ສຽງພາກ + ຫາ footage + ແຜນຊັອດ (ບໍ່ render)
   run   <project> [--aspect 9:16] [--both] [--workers N] [--offline] [--force]
+
+  voices                               ລາຍຊື່ສຽງພາກ (voice cards)
+  voice-design <name> --desc "..."     ສ້າງສຽງໃໝ່ຈາກຄຳບັນຍາຍ (ພາສາອັງກິດ) ດ້ວຍ VoxCPM2
+  voice-add <name> --wav f --text ".." ສ້າງສຽງຈາກໄຟລ໌ອັດຂອງເຈົ້າຂອງສຽງເອງ
+  voice-test --voices a,b --out dir    ສັງເຄາະປະໂຫຍກທົດລອງດ້ວຍແຕ່ລະສຽງ
 """
 import argparse, sys
 
@@ -20,7 +25,17 @@ def main(argv=None):
         r.add_argument("--aspect", choices=["16:9", "9:16"]); r.add_argument("--both", action="store_true")
         r.add_argument("--workers", type=int); r.add_argument("--offline", action="store_true")
         r.add_argument("--force", action="store_true"); r.add_argument("--crf", type=int, default=21)
+    sub.add_parser("voices")
+    vd = sub.add_parser("voice-design"); vd.add_argument("name"); vd.add_argument("--desc", required=True)
+    vd.add_argument("--text"); vd.add_argument("--label", default=""); vd.add_argument("--gender", default="")
+    va = sub.add_parser("voice-add"); va.add_argument("name"); va.add_argument("--wav", required=True)
+    va.add_argument("--text", required=True); va.add_argument("--label", default="")
+    va.add_argument("--gender", default="")
+    vt = sub.add_parser("voice-test"); vt.add_argument("--voices"); vt.add_argument("--out", default="voice_samples")
+    vt.add_argument("--text")
     a = ap.parse_args(argv)
+    if a.cmd.startswith("voice"):
+        return voices_cmd(a)
     try:
         if a.cmd == "new":
             print(pipeline.new_project(a.project, a.title))
@@ -42,6 +57,43 @@ def main(argv=None):
     except script.ScriptError as e:
         print("ຜິດພາດ:", e, file=sys.stderr)
         return 2
+    return 0
+
+
+REF_TEXT = "ສະບາຍດີ ທ່ານຜູ້ຊົມທຸກທ່ານ ຍິນດີຕ້ອນຮັບເຂົ້າສູ່ລາຍການເຕະບານຂອງພວກເຮົາ ມື້ນີ້ມີເລື່ອງມ່ວນໆ ມາເລົ່າສູ່ຟັງ"
+TEST_TEXT = ("ຮູ້ບໍ່ວ່າ ຜູ້ຮັກສາປະຕູຍຸກນີ້ ເຊຟບານເກັ່ງຢ່າງດຽວ ບໍ່ພໍແລ້ວ! "
+             "ປີ 2017 ເປບ ກວາດິໂອລາ ຈ່າຍ 35 ລ້ານປອນ ຊື້ ເອເດີສັນ ມາຈາກ ເບັນຟິກາ.")
+
+
+def voices_cmd(a):
+    import os, subprocess
+    from . import laotext, voice
+    if a.cmd == "voices":
+        for n, c in voice.list_cards().items():
+            print(f"vox:{n:<18} {c.get('gender', ''):<5} {c.get('label', '')}  — {c.get('desc', '') or c.get('engine', '')}")
+        print("mms                    ສຽງ AI ຮ່າງ (16 kHz, CC BY-NC)")
+        return 0
+    if a.cmd == "voice-design":
+        print(voice.design_voice(a.name, a.desc, a.text or REF_TEXT, label=a.label, gender=a.gender))
+        return 0
+    if a.cmd == "voice-add":
+        print(voice.add_voice(a.name, a.wav, a.text, label=a.label, gender=a.gender))
+        return 0
+    cards = voice.list_cards()
+    names = [n for n in (a.voices.split(",") if a.voices else cards) if n]
+    os.makedirs(a.out, exist_ok=True)
+    spoken = laotext.speech_plan(a.text or TEST_TEXT)[1]
+    model = voice.Vox()
+    for n in names:
+        y = model.say(spoken, card=voice.load_card(n))
+        y, _ = voice.trim_silence(y)
+        wav = os.path.join(a.out, n + ".wav")
+        voice.write_wav(wav, y / (abs(y).max() + 1e-9) * 0.89)
+        mp3 = os.path.join(a.out, n + ".mp3")
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", wav, "-af", "loudnorm=I=-16:TP=-1.5", "-b:a", "160k", mp3],
+                       check=True)
+        os.remove(wav)
+        print(mp3, f"{len(y) / voice.SR:.1f}s", flush=True)
     return 0
 
 

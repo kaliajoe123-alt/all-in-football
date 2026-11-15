@@ -3,4 +3,5 @@ pillow
 pyyaml
 laonlp
 onnxruntime
+# optional, installed by `setup.sh --vox`: voxcpm soundfile scipy   (high-quality Lao voices, needs PyTorch)
 # optional: Microsoft Lao neural voices (needs open internet):  pip install edge-tts

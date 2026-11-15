@@ -1,8 +1,11 @@
 """ສຽງພາກລາວອັດຕະໂນມັດ (Lao voice-over).
 
 Engines
+  vox   - VoxCPM2 (Apache-2.0, 48 kHz, Lao supported). `voice: vox:<card>` speaks with a saved voice card
+          (assets/voices/<card>/: a short reference clip + its text) so every sentence has the SAME voice.
+          Cards are made by voice design (text description) or from a real recording. Slow on CPU.
   mms   - offline neural Lao voice (Meta MMS-TTS, ONNX, CPU). Gives exact per-word timing.
-          Licence CC-BY-NC 4.0 -> good for drafts / non-commercial; use `edge` or a recording for ads.
+          Licence CC-BY-NC 4.0, 16 kHz -> quick drafts only.
   edge  - Microsoft neural voices lo-LA-KeomanyNeural (ຍິງ) / lo-LA-ChanthavongNeural (ຊາຍ) via `edge-tts`
           (needs open internet + websockets; not available inside the locked cloud sandbox).
   file  - the narrator's own recording (best quality). Sentences are aligned to the pauses in the recording.
@@ -13,7 +16,7 @@ import numpy as np
 
 from . import laotext
 
-SR = 16000
+SR = 48000                                                     # narration track sample rate
 CACHE = os.path.expanduser(os.environ.get("LAOSTUDIO_CACHE", "~/.cache/laostudio"))
 MMS_URL = "https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/lao/"
 EDGE_VOICES = {"female": "lo-LA-KeomanyNeural", "male": "lo-LA-ChanthavongNeural"}
@@ -40,7 +43,18 @@ def fetch(url, dest, ua="LaoVideoStudio/1.0"):
     return dest
 
 
-def read_audio(path, sr=SR):
+def atempo(y, speed):
+    """Change speaking rate without changing pitch (ffmpeg atempo)."""
+    import tempfile
+    a, b = tempfile.mktemp(suffix=".wav"), tempfile.mktemp(suffix=".wav")
+    write_wav(a, y)
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", a, "-af", f"atempo={speed:.3f}", b], check=True)
+    out = read_audio(b); os.remove(a); os.remove(b)
+    return out
+
+
+def read_audio(path, sr=None):
+    sr = sr or SR
     r = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-vn", "-ac", "1", "-ar", str(sr), "-f", "f32le", "-"],
                        capture_output=True)
     if r.returncode != 0:
@@ -53,6 +67,116 @@ def write_wav(path, x, sr=SR):
     with wave.open(path, "wb") as w:
         w.setnchannels(1 if x.ndim == 1 else x.shape[1]); w.setsampwidth(2); w.setframerate(sr)
         w.writeframes((x * 32767).astype("<i2").tobytes())
+
+
+def resample(y, sr_in, sr_out):
+    if sr_in == sr_out or len(y) == 0:
+        return y.astype(np.float32)
+    try:
+        from math import gcd
+        from scipy.signal import resample_poly
+        g = gcd(sr_in, sr_out)
+        return resample_poly(y, sr_out // g, sr_in // g).astype(np.float32)
+    except Exception:
+        x = np.arange(int(len(y) * sr_out / sr_in)) * (sr_in / sr_out)
+        return np.interp(x, np.arange(len(y)), y).astype(np.float32)
+
+
+# ------------------------------------------------------------------ voice cards (VoxCPM2)
+SKILL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+VOICE_DIRS = [os.path.join(SKILL, "assets", "voices")]
+
+
+def load_card(name, project=None):
+    """A voice card = folder with ref.wav (5-15 s of the voice), card.json {text, desc, label, gender}."""
+    for d in ([os.path.join(project, "voices")] if project else []) + VOICE_DIRS:
+        f = os.path.join(d, name, "card.json")
+        if os.path.isfile(f):
+            card = json.load(open(f, encoding="utf-8"))
+            card["wav"] = os.path.join(d, name, "ref.wav")
+            card["name"] = name
+            return card
+    raise ValueError(f"ບໍ່ພົບສຽງ '{name}' — ເບິ່ງລາຍຊື່ດ້ວຍ `studio voices`")
+
+
+def list_cards(project=None):
+    out = {}
+    for d in VOICE_DIRS + ([os.path.join(project, "voices")] if project else []):
+        for n in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+            if os.path.isfile(os.path.join(d, n, "card.json")):
+                out[n] = load_card(n, project)
+    return out
+
+
+class Vox:
+    def __init__(self):
+        os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+        os.environ.setdefault("TQDM_DISABLE", "1")
+        import torch
+        from voxcpm import VoxCPM
+        torch.set_num_threads(os.cpu_count() or 2)
+        print("  ໂຫຼດໂມເດລສຽງ VoxCPM2 ...", flush=True)
+        self.m = VoxCPM.from_pretrained("openbmb/VoxCPM2", load_denoiser=False)
+        self.sr = self.m.tts_model.sample_rate
+
+    def say(self, spoken, card=None, desc=None, steps=10, cfg=2.0):
+        """card -> clone that voice (same timbre every call); desc -> design a new voice from a description."""
+        kw = dict(cfg_value=cfg, inference_timesteps=steps)
+        if card:
+            kw.update(text=spoken, prompt_wav_path=card["wav"], prompt_text=card["text"],
+                      reference_wav_path=card["wav"])
+        else:
+            kw.update(text=f"({desc}){spoken}" if desc else spoken)
+        y = np.asarray(self.m.generate(**kw), dtype=np.float32).reshape(-1)
+        return resample(y, self.sr, SR)
+
+
+def design_voice(name, desc, text, out_dir=None, label="", gender="", model=None):
+    """Create a voice card from a natural-language description. Returns the card folder."""
+    model = model or Vox()
+    y = model.say(text, desc=desc)
+    y, _ = trim_silence(y)
+    y = (y / (np.abs(y).max() + 1e-9) * 0.89).astype(np.float32)
+    d = os.path.join(out_dir or VOICE_DIRS[0], name)
+    os.makedirs(d, exist_ok=True)
+    write_wav(os.path.join(d, "ref.wav"), y)
+    json.dump({"text": text, "desc": desc, "label": label, "gender": gender, "engine": "VoxCPM2 voice design"},
+              open(os.path.join(d, "card.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return d
+
+
+def add_voice(name, wav, text, out_dir=None, label="", gender=""):
+    """Voice card from a REAL recording (only the speaker's own voice, with their consent)."""
+    y = read_audio(wav)
+    y, _ = trim_silence(y)
+    y = (y[:int(20 * SR)] / (np.abs(y).max() + 1e-9) * 0.89).astype(np.float32)
+    d = os.path.join(out_dir or VOICE_DIRS[0], name)
+    os.makedirs(d, exist_ok=True)
+    write_wav(os.path.join(d, "ref.wav"), y)
+    json.dump({"text": text, "desc": "", "label": label, "gender": gender, "engine": "recording"},
+              open(os.path.join(d, "card.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return d
+
+
+def _char_weights(spoken):
+    """Relative duration of every character, borrowed from the MMS duration model (fast); uniform fallback."""
+    try:
+        global _MMS
+        _MMS = globals().get("_MMS") or MMS()
+        _, times = _MMS.say(spoken, 1.0)
+        return [max(0.0, b - a) for a, b in times]
+    except Exception:
+        return [0.0 if c.isspace() else 1.0 for c in spoken]
+
+
+def _scaled_times(spoken, total, lead=0.04):
+    w = _char_weights(spoken)
+    s = sum(w) or 1.0
+    out, t = [], lead
+    for x in w:
+        d = (total - 2 * lead) * x / s
+        out.append((t, t + d)); t += d
+    return out
 
 
 # ------------------------------------------------------------------ MMS (offline)
@@ -90,8 +214,8 @@ class MMS:
                                     "noise_scale": np.array([0.6], np.float32),
                                     "length_scale": np.array([1.0 / speed], np.float32),
                                     "noise_scale_w": np.array([0.75], np.float32)})
-        y, dur = y[0, 0].astype(np.float32), dur[0, 0]
-        cum = np.concatenate([[0], np.cumsum(dur)]) * 256.0 / SR
+        y, dur = resample(y[0, 0].astype(np.float32), 16000, SR), dur[0, 0]
+        cum = np.concatenate([[0], np.cumsum(dur)]) * 256.0 / 16000.0
         times, k = [None] * len(spoken), 0
         for k, ci in enumerate(owner):                  # token k sits at x-position 2k+1 (blank before it at 2k)
             a, b = cum[2 * k], cum[2 * k + 2]
@@ -135,7 +259,7 @@ def trim_silence(y, thr=0.012, pad=0.06):
     return y[a:b], a / SR
 
 
-def synth_sentences(lines, cfg, cache_dir):
+def synth_sentences(lines, cfg, cache_dir, project=None):
     """lines: list of display texts. Returns list of dicts {audio, dur, tokens:[{t,a,b}], spoken, missing}."""
     engine = cfg.get("voice", "mms")
     speed = float(cfg.get("speed", 1.0))
@@ -144,7 +268,7 @@ def synth_sentences(lines, cfg, cache_dir):
     model, out = None, []
     for text in lines:
         toks, spoken, spans, missing = laotext.speech_plan(text, say)
-        key = hashlib.sha1(json.dumps([engine, speed, spoken], ensure_ascii=False).encode()).hexdigest()[:16]
+        key = hashlib.sha1(json.dumps([engine, speed, spoken, SR], ensure_ascii=False).encode()).hexdigest()[:16]
         fa, fj = os.path.join(cache_dir, key + ".npy"), os.path.join(cache_dir, key + ".json")
         if os.path.exists(fa) and os.path.exists(fj):
             y, times = np.load(fa), json.load(open(fj))
@@ -152,6 +276,27 @@ def synth_sentences(lines, cfg, cache_dir):
             if engine == "mms":
                 model = model or MMS()
                 y, times = model.say(spoken, speed)
+            elif engine.startswith("vox"):
+                model = model or Vox()
+                card = load_card(engine.split(":", 1)[1], project) if ":" in engine else None
+                # the model occasionally skips or repeats words: compare with the length the (reliable) MMS
+                # duration model expects and re-generate when it is far off; keep the closest take
+                expect = sum(_char_weights(spoken)) or 1.0
+                best = None
+                for attempt in range(3):
+                    y = trim_silence(model.say(spoken, card=card, desc=cfg.get("voice_desc")))[0]
+                    ratio = len(y) / SR / expect
+                    score = abs(ratio - 0.78)
+                    if best is None or score < best[0]:
+                        best = (score, y)
+                    if 0.5 <= ratio <= 1.25:
+                        break
+                    print(f"    … ຄວາມຍາວຜິດປົກກະຕິ (x{ratio:.2f}) ສັງເຄາະໃໝ່", flush=True)
+                y = best[1]
+                if speed != 1.0:
+                    y = atempo(y, speed)
+                times = _scaled_times(spoken, len(y) / SR)
+                print(f"    ✓ {len(y) / SR:.1f} ວິ  {text[:40]}", flush=True)
             elif engine.startswith("edge"):
                 v = engine.split(":", 1)[1] if ":" in engine else "female"
                 y, times = edge_say(spoken, EDGE_VOICES.get(v, v), speed)
