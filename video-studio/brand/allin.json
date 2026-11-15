@@ -1,0 +1,15 @@
+{
+  "name": "ALL IN",
+  "handle": "@ALLINFootball",
+  "logo": "allin_logo.png",
+  "follow": "ກົດຕິດຕາມ",
+  "paper": "#EFE6D3",
+  "grid": "#DFD3BA",
+  "ink": "#101A3A",
+  "accent": "#E4252A",
+  "label_bg": "#F4C430",
+  "label_fg": "#101A3A",
+  "hl": "#FFD21F",
+  "lime": "#C4F21A",
+  "library": []
+}
