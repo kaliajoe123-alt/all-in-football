@@ -341,19 +341,53 @@ def level(y, gain_db=0.0, target_rms=0.10):
     return (y * (0.97 / pk) if pk > 0.97 else y).astype(np.float32)
 
 
-def _vox_take(model, text, card, style, desc, expect):
-    """One take with a sanity check: the model sometimes skips or repeats words, so compare its length
-    with what the (reliable) MMS duration model expects and re-generate when it is far off."""
+def median_f0(y, sr=None):
+    """Median pitch (Hz) of the voiced part; 0 when nothing voiced was found."""
+    x = resample(y, sr or SR, 16000)
+    f = []
+    for i in range(0, len(x) - 1024, 320):
+        w = x[i:i + 1024] * np.hanning(1024)
+        if np.sqrt((w ** 2).mean()) < 0.012:
+            continue
+        ac = np.correlate(w, w, "full")[1023:]
+        ac /= ac[0] + 1e-9
+        k = 40 + int(np.argmax(ac[40:266]))
+        if ac[k] > 0.45:
+            f.append(16000 / k)
+    return float(np.median(f)) if f else 0.0
+
+
+# Tone lock (cards with "lock_tone": true): every line must stay near the card's own pitch (f0_hz), so the
+# voice keeps the same weight from the first line to the last. Allowed drift in semitones per emotion;
+# a climax may rise a little. Outside the window: re-generate, then pull the best take back to the edge.
+TONE_ROOM = {"climax": (-1.0, 2.5), "happy": (-1.5, 2.0)}
+TONE_DEFAULT = (-1.5, 1.5)
+
+
+def _vox_take(model, text, card, style, desc, expect, emo="story"):
+    """One take with sanity checks: the model sometimes skips or repeats words (length vs the MMS duration
+    model), and - for tone-locked cards - drifts away from the card's pitch. Re-generate when either is off."""
+    target = float(card.get("f0_hz") or 0) if card and card.get("lock_tone") else 0.0
+    lo, hi = TONE_ROOM.get(emo, TONE_DEFAULT)
     best = None
-    for attempt in range(3):
+    for attempt in range(5 if target else 3):
         y = trim_silence(model.say(text, card=card, desc=desc, style=style))[0]
         ratio = len(y) / SR / expect
-        if best is None or abs(ratio - 0.78) < best[0]:
-            best = (abs(ratio - 0.78), y)
-        if 0.45 <= ratio <= 1.35:
+        f = median_f0(y) if target else 0.0
+        st = 12 * np.log2(f / target) if (target and f) else 0.0
+        outside = max(lo - st, st - hi, 0.0)
+        score = abs(ratio - 0.78) * 4 + outside
+        if best is None or score < best[0]:
+            best = (score, y, st)
+        len_ok = 0.45 <= ratio <= 1.35
+        if len_ok and outside == 0:
             break
-        print(f"    … ຄວາມຍາວຜິດປົກກະຕິ (x{ratio:.2f}) ສັງເຄາະໃໝ່", flush=True)
-    return best[1]
+        why = f"ຄວາມຍາວ x{ratio:.2f}" if not len_ok else f"ໂທນເພ້ຍ {st:+.1f} st"
+        print(f"    … {why} ສັງເຄາະໃໝ່", flush=True)
+    _, y, st = best
+    if target and not (lo <= st <= hi):                    # still off: pull it back to the window edge
+        y = shape(y, 1.0, max(-4.0, min(4.0, (lo if st < lo else hi) - st)))
+    return y
 
 
 def synth_sentences(lines, cfg, cache_dir, project=None, emos=None):
@@ -388,8 +422,9 @@ def synth_sentences(lines, cfg, cache_dir, project=None, emos=None):
                     continue
                 if is_vox:
                     y = _vox_take(model, seg, card, E["style"], cfg.get("voice_desc"),
-                                  sum(_char_weights(seg)) or 1.0)
-                    y = shape(y, speed, E["pitch"])
+                                  sum(_char_weights(seg)) or 1.0, emo)
+                    locked = bool(card and card.get("lock_tone"))  # a locked tone gets no pitch offsets
+                    y = shape(y, speed, 0.0 if locked else E["pitch"])
                     tt = _scaled_times(seg, len(y) / SR)
                 elif engine == "mms":
                     model = model or MMS()

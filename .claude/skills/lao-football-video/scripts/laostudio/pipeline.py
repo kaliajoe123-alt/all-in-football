@@ -52,7 +52,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     emos = [l["d"].get("emo") or ("hook" if i == 0 else "story") for i, l in enumerate(all_lines)]
 
     # 1 ── voice ------------------------------------------------------------------------------
-    eng = str(meta.get("voice", "vox:mun"))
+    eng = str(meta.get("voice", "vox:hype_m_lock"))
     removed = 0.0
     if eng.startswith("file:"):
         log(f"[1/6] ສຽງພາກ: ໃຊ້ໄຟລ໌ອັດສຽງ {eng[5:]}")
@@ -261,7 +261,7 @@ title: ຫົວຂໍ້ທີ່ດຶງດູດ ມີ *ຄຳສຳຄັ�
 show: ຝອຍນອກເກມ
 handle: "@ALLINFootball"
 aspect: "16:9"          # 16:9 (YouTube/Facebook) ຫຼື 9:16 (TikTok/Reels)
-voice: "vox:mun"        # vox:mun|ai|saeo|euay|sing | file:voice.m4a | mms (ຮ່າງໄວ)
+voice: "vox:hype_m_lock"        # vox:mun|ai|saeo|euay|sing | file:voice.m4a | mms (ຮ່າງໄວ)
 say:                    # ຄຳອ່ານລາວຂອງຊື່ໂຕລາຕິນ
   Pep Guardiola: ເປບ ກວາດິໂອລາ
 music: tension          # epic | tension | sad | fun | none
