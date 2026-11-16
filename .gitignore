@@ -46,3 +46,4 @@ video-studio/projects/*/.cache/
 video-studio/projects/*/out/
 __pycache__/
 *.pyc
+video-studio/projects/*/*.mp3

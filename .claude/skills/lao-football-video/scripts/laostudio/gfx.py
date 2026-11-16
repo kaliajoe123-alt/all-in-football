@@ -116,8 +116,14 @@ def wrap_pairs(pairs, size, max_w):
     for tok, fl in pairs:
         trial = "".join(t for t, _ in cur) + tok
         if cur and text_w(trial.rstrip(), size) > max_w:
-            lines.append(cur)
-            cur = [] if tok.strip() == "" else [(tok, fl)]
+            # prefer breaking at the last space: the word segmenter can split unknown Lao words (ເບກ -> ເບ|ກ)
+            sp = max((i for i, (t, _) in enumerate(cur) if t.strip() == ""), default=-1)
+            if tok.strip() and sp > 0 and text_w("".join(t for t, _ in cur[sp + 1:]) + tok, size) <= max_w:
+                lines.append(cur[:sp])
+                cur = cur[sp + 1:] + [(tok, fl)]
+            else:
+                lines.append(cur)
+                cur = [] if tok.strip() == "" else [(tok, fl)]
         else:
             cur.append((tok, fl))
     if cur:
