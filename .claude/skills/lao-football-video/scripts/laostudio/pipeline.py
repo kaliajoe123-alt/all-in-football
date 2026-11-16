@@ -261,7 +261,7 @@ title: ຫົວຂໍ້ທີ່ດຶງດູດ ມີ *ຄຳສຳຄັ�
 show: ຝອຍນອກເກມ
 handle: "@ALLINFootball"
 aspect: "16:9"          # 16:9 (YouTube/Facebook) ຫຼື 9:16 (TikTok/Reels)
-voice: "vox:hype_m_lock"        # vox:mun|ai|saeo|euay|sing | file:voice.m4a | mms (ຮ່າງໄວ)
+voice: "vox:hype_m_lock"  # vox:hype_m_lock (ຊາຍ) | vox:hype_f_lock (ຍິງ) | file:voice.m4a | mms (ຮ່າງໄວ)
 say:                    # ຄຳອ່ານລາວຂອງຊື່ໂຕລາຕິນ
   Pep Guardiola: ເປບ ກວາດິໂອລາ
 music: tension          # epic | tension | sad | fun | none
