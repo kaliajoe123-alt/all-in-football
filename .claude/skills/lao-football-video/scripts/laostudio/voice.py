@@ -125,7 +125,7 @@ class Vox:
         desc only    -> design a new voice from a description"""
         spoken = " ".join(spoken.split()).replace(" ,", ",").replace(" .", ".").replace(" !", "!").replace(" ?", "?")
         kw = dict(cfg_value=cfg, inference_timesteps=steps)
-        if card and style:
+        if card and style and card.get("perform", True):
             kw.update(text=f"({style}){spoken}", reference_wav_path=card["wav"])
         elif card:
             kw.update(text=spoken, prompt_wav_path=card["wav"], prompt_text=card["text"],
@@ -281,6 +281,8 @@ def use_english(cfg):
     return str(cfg.get("voice", "")).startswith("vox") and str(cfg.get("english", "lao")) == "native"
 
 
+# Lao is tonal: a style that is too extreme (whispering, shouting) bends the word tones and the accent
+# stops sounding native, so the style prompts stay moderate and the contrast comes from the numbers below.
 # How each emotion is PERFORMED. `style` steers the voice model (it changes pitch and energy but not
 # reliably the pace), so pace, loudness, pitch offset and pauses are also enforced here.
 #   speed  : speaking-rate factor          gain : dB relative to normal        pitch : semitones
@@ -290,10 +292,10 @@ EMO = {
                      speed=1.00, gain=1.0, pitch=0.0, pause=0.40, gap=0.30),
     "story":    dict(style="lively, warm, conversational storyteller chatting with friends, expressive ups and downs",
                      speed=1.00, gain=0.0, pitch=0.0, pause=0.32, gap=0.24),
-    "suspense": dict(style="low, quiet, slow, suspenseful, tense, almost whispering",
+    "suspense": dict(style="lower, quieter and slower, tense and suspenseful, clearly spoken",
                      speed=0.90, gain=-4.0, pitch=-1.0, pause=0.65, gap=0.45),
-    "climax":   dict(style="very excited, loud, fast, high energy, shouting like a football commentator when a goal "
-                           "is scored", speed=1.06, gain=2.5, pitch=0.0, pause=0.22, gap=0.14),
+    "climax":   dict(style="very excited and energetic, fast, thrilled, like a football fan telling the best moment, "
+                           "clearly spoken", speed=1.06, gain=2.5, pitch=0.0, pause=0.22, gap=0.14),
     "calm":     dict(style="calm, slow, warm, thoughtful and meaningful", speed=0.92, gain=-1.5, pitch=-0.6,
                      pause=0.55, gap=0.40),
     "funny":    dict(style="playful, teasing, amused, cheeky, holding back a laugh", speed=1.03, gain=0.5, pitch=0.3,

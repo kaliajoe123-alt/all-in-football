@@ -92,7 +92,7 @@ def voices_cmd(a):
     os.makedirs(a.out, exist_ok=True)
     lines = [("story", a.text)] if a.text else TEST_LINES
     for n in names:
-        sents = voice.synth_sentences([t for _, t in lines], {"voice": "vox:" + n},
+        sents = voice.synth_sentences([t for _, t in lines], {"voice": n if n in ("mms",) else "vox:" + n},
                                       os.path.join(a.out, ".cache"), emos=[e for e, _ in lines])
         parts = []
         for s_ in sents:
