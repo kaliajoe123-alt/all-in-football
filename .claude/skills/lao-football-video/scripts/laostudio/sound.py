@@ -151,7 +151,8 @@ def mix(voice_wav, music, sfx_arr, total, out_m4a, tmp_dir, music_vol=0.2, stems
     os.makedirs(tmp_dir, exist_ok=True)
     paths = {"voice": voice_wav}
     inputs, filt = ["-i", voice_wav], []
-    filt.append("[0:a]aresample=48000,highpass=f=75,equalizer=f=3200:t=q:w=1.2:g=2.5,"
+    filt.append("[0:a]aresample=48000,highpass=f=90,equalizer=f=250:t=q:w=1.0:g=-2,"
+                "equalizer=f=3500:t=q:w=1.2:g=3,highshelf=f=8000:g=2,"
                 "acompressor=threshold=-20dB:ratio=3:attack=8:release=160:makeup=3,"
                 "loudnorm=I=-16:TP=-2:LRA=9,asplit=2[v][vsc]")
     last, k = "[v]", 1

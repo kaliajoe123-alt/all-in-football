@@ -10,7 +10,7 @@ import yaml
 
 from . import laotext
 
-DEFAULTS = {"aspect": "16:9", "voice": "vox:thum", "speed": 1.0, "music": "tension", "fps": 30, "captions": "key",
+DEFAULTS = {"aspect": "16:9", "voice": "vox:chaeng", "speed": 1.0, "music": "tension", "fps": 30, "captions": "key",
             "show": "", "handle": "", "narrator": "", "say": {}, "gap": 0.26, "chapter_cards": True,
             "max_shot": 4.4, "cta": "ກົດຕິດຕາມ ແລ້ວຄອມເມັ້ນບອກແດ່!", "brand": "allin"}
 FLAGS = {"full", "card", "slow", "flash", "nocap"}
@@ -77,8 +77,10 @@ def check(doc):
     for c in doc["chapters"]:
         for l in c["lines"]:
             total += 1
-            miss = laotext.speech_plan(l["text"], say)[3]
-            if miss and not str(doc["meta"].get("voice", "")).startswith("file"):
+            v = str(doc["meta"].get("voice", ""))
+            english = v.startswith("vox") and str(doc["meta"].get("english", "native")) != "lao"
+            miss = laotext.speech_plan(l["text"], say, english)[3]
+            if miss and not v.startswith("file"):
                 probs.append(f"ແຖວ {l['no']}: ຕ້ອງເພີ່ມຄຳອ່ານລາວໃນ `say:` ສຳລັບ {', '.join(sorted(set(miss)))}")
             if not any(k in l["d"] for k in ("img", "clip", "video", "text", "quote")):
                 n_no_visual += 1

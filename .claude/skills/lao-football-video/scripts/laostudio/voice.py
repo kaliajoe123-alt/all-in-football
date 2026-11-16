@@ -121,6 +121,7 @@ class Vox:
 
     def say(self, spoken, card=None, desc=None, steps=10, cfg=2.0):
         """card -> clone that voice (same timbre every call); desc -> design a new voice from a description."""
+        spoken = " ".join(spoken.split()).replace(" ,", ",").replace(" .", ".").replace(" !", "!").replace(" ?", "?")
         kw = dict(cfg_value=cfg, inference_timesteps=steps)
         if card:
             kw.update(text=spoken, prompt_wav_path=card["wav"], prompt_text=card["text"],
@@ -164,9 +165,10 @@ def _char_weights(spoken):
         global _MMS
         _MMS = globals().get("_MMS") or MMS()
         _, times = _MMS.say(spoken, 1.0)
-        return [max(0.0, b - a) for a, b in times]
+        # the Lao duration model cannot time Latin letters: give English words ~65 ms per letter
+        return [0.065 if laotext.LATIN.match(c) else max(0.0, b - a) for c, (a, b) in zip(spoken, times)]
     except Exception:
-        return [0.0 if c.isspace() else 1.0 for c in spoken]
+        return [0.0 if c.isspace() else 0.07 for c in spoken]
 
 
 def _scaled_times(spoken, total, lead=0.04):
@@ -259,6 +261,11 @@ def trim_silence(y, thr=0.012, pad=0.06):
     return y[a:b], a / SR
 
 
+def use_english(cfg):
+    """vox voices are bilingual: English names are read as English unless `english: lao` is set."""
+    return str(cfg.get("voice", "")).startswith("vox") and str(cfg.get("english", "native")) != "lao"
+
+
 def synth_sentences(lines, cfg, cache_dir, project=None):
     """lines: list of display texts. Returns list of dicts {audio, dur, tokens:[{t,a,b}], spoken, missing}."""
     engine = cfg.get("voice", "mms")
@@ -266,8 +273,9 @@ def synth_sentences(lines, cfg, cache_dir, project=None):
     say = cfg.get("say", {})
     os.makedirs(cache_dir, exist_ok=True)
     model, out = None, []
+    english = use_english(cfg)
     for text in lines:
-        toks, spoken, spans, missing = laotext.speech_plan(text, say)
+        toks, spoken, spans, missing = laotext.speech_plan(text, say, english)
         key = hashlib.sha1(json.dumps([engine, speed, spoken, SR], ensure_ascii=False).encode()).hexdigest()[:16]
         fa, fj = os.path.join(cache_dir, key + ".npy"), os.path.join(cache_dir, key + ".json")
         if os.path.exists(fa) and os.path.exists(fj):

@@ -25,10 +25,11 @@ class LaoText(unittest.TestCase):
 
 
 class Script(unittest.TestCase):
-    def _doc(self, body):
+    def _doc(self, body, voice="mms"):
         d = tempfile.mkdtemp()
         p = os.path.join(d, "script.md")
-        open(p, "w", encoding="utf-8").write("---\ntitle: ທົດສອບ *ເນັ້ນ*\nsay:\n  Neuer: ນອຍເອີ\n---\n" + body)
+        open(p, "w", encoding="utf-8").write("---\ntitle: ທົດສອບ *ເນັ້ນ*\nvoice: " + voice
+                                             + "\nsay:\n  Neuer: ນອຍເອີ\n---\n" + body)
         return script.parse(p)
 
     def test_parse_and_timeline(self):
@@ -55,6 +56,16 @@ class Script(unittest.TestCase):
         doc = self._doc("[imgg: x] Ederson ຍິງ\n")
         probs, _ = script.check(doc)
         self.assertEqual(len(probs), 2)
+
+
+    def test_bilingual_voice_reads_english_as_english(self):
+        doc = self._doc("[img: x] Ederson ຍິງ 2 ປະຕູ!\n", voice="vox:any")
+        self.assertEqual(script.check(doc)[0], [])                  # no Lao reading needed
+        spoken = laotext.speech_plan("Neuer ກັບ Ederson ຍິງ 2 ປະຕູ!", {"Neuer": "ນອຍເອີ"}, english=True)[1]
+        self.assertIn("Ederson", spoken)
+        self.assertIn("Neuer", spoken)                              # Lao `say:` readings are not used
+        self.assertIn("ສອງ", spoken)                                # numbers are still Lao words
+        self.assertIn("!", spoken)
 
 
 class Gfx(unittest.TestCase):

@@ -4,19 +4,9 @@ slug: goalkeeper_feet
 show: ເລື່ອງໃນເດີ່ນຫຍ້າ
 handle: "@ALLINFootball"
 aspect: "16:9"
-voice: "vox:thum"
+voice: "vox:chaeng"
 music: tension
 cta: ກົດຕິດຕາມ ແລ້ວຄອມເມັ້ນບອກແດ່!
-say:
-  Manuel Neuer: ມານູເອລ ນອຍເອີ
-  Pep Guardiola: ເປບ ກວາດິໂອລາ
-  Pep: ເປບ
-  Joe Hart: ໂຈ ຮາດ
-  Ederson: ເອເດີສັນ
-  Man City: ແມນ ຊິຕີ້
-  Benfica: ເບັນຟິກາ
-  FIFA: ຟີຟາ
-  sweeper-keeper: ສະວີບເປີ ຄີບເປີ
 caption: |
   ເປັນຫຍັງຜູ້ຮັກສາປະຕູຍຸກໃໝ່ ຕ້ອງຫຼິ້ນດ້ວຍຕີນ? ⚽
   ຈາກກົດປີ 1992 → Neuer ປີ 2014 → Ederson ຂອງ Pep

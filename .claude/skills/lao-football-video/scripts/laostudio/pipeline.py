@@ -49,7 +49,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     lines = [l["text"] for c in doc["chapters"] for l in c["lines"]]
 
     # 1 ── voice ------------------------------------------------------------------------------
-    eng = str(meta.get("voice", "vox:thum"))
+    eng = str(meta.get("voice", "vox:chaeng"))
     removed = 0.0
     if eng.startswith("file:"):
         log(f"[1/6] ສຽງພາກ: ໃຊ້ໄຟລ໌ອັດສຽງ {eng[5:]}")
@@ -258,10 +258,8 @@ title: ຫົວຂໍ້ທີ່ດຶງດູດ ມີ *ຄຳສຳຄັ�
 show: ຝອຍນອກເກມ
 handle: "@ALLINFootball"
 aspect: "16:9"          # 16:9 (YouTube/Facebook) ຫຼື 9:16 (TikTok/Reels)
-voice: "vox:thum"       # vox:thum|khem|num|nang|sao | file:voice.m4a | mms (ຮ່າງໄວ)
+voice: "vox:chaeng"     # vox:chaeng|khao|vai|num|sai|mouan|sao | file:voice.m4a | mms (ຮ່າງໄວ)
 music: tension          # epic | tension | sad | fun | none
-say:                    # ຄຳອ່ານລາວຂອງຊື່ພາສາອັງກິດ
-  Pep Guardiola: ເປບ ກວາດິໂອລາ
 caption: |
   ຂໍ້ຄວາມໂພສ ...
 hashtags: "#ເຕະບານ #football #ALLIN"

@@ -60,9 +60,10 @@ def main(argv=None):
     return 0
 
 
-REF_TEXT = "ສະບາຍດີ ທ່ານຜູ້ຊົມທຸກທ່ານ ຍິນດີຕ້ອນຮັບເຂົ້າສູ່ລາຍການເຕະບານຂອງພວກເຮົາ ມື້ນີ້ມີເລື່ອງມ່ວນໆ ມາເລົ່າສູ່ຟັງ"
-TEST_TEXT = ("ຮູ້ບໍ່ວ່າ ຜູ້ຮັກສາປະຕູຍຸກນີ້ ເຊຟບານເກັ່ງຢ່າງດຽວ ບໍ່ພໍແລ້ວ! "
-             "ປີ 2017 ເປບ ກວາດິໂອລາ ຈ່າຍ 35 ລ້ານປອນ ຊື້ ເອເດີສັນ ມາຈາກ ເບັນຟິກາ.")
+REF_TEXT = ("ສະບາຍດີ ທ່ານຜູ້ຊົມທຸກທ່ານ ຍິນດີຕ້ອນຮັບເຂົ້າສູ່ລາຍການເຕະບານຂອງພວກເຮົາ "
+            "ມື້ນີ້ເຮົາຈະມາເວົ້າເລື່ອງ Premier League ແລະ Champions League")
+TEST_TEXT = ("ປີ 2016 Pep Guardiola ມາຄຸມ Manchester City ແລະ ຕັດສິນໃຈປ່ອຍ Joe Hart ອອກຈາກທີມ. "
+             "ປີຕໍ່ມາ ລາວຈ່າຍ 35 ລ້ານປອນ ຊື້ Ederson ຈາກ Benfica ແລ້ວຄວ້າແຊ້ມ Premier League ດ້ວຍ 100 ຄະແນນ!")
 
 
 def voices_cmd(a):
@@ -82,7 +83,7 @@ def voices_cmd(a):
     cards = voice.list_cards()
     names = [n for n in (a.voices.split(",") if a.voices else cards) if n]
     os.makedirs(a.out, exist_ok=True)
-    spoken = laotext.speech_plan(a.text or TEST_TEXT)[1]
+    spoken = laotext.speech_plan(a.text or TEST_TEXT, english=True)[1]
     model = voice.Vox()
     for n in names:
         y = model.say(spoken, card=voice.load_card(n))
