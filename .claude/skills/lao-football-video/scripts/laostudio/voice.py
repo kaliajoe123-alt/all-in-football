@@ -422,6 +422,65 @@ def match_tone(y, ref, max_db=6.0, n=2048):
     return out[:len(y)].astype(np.float32)
 
 
+def phrases(y, sr=None, min_gap=0.12, min_len=0.25):
+    """(start, end) sample ranges of the spoken phrases, split at silences of at least `min_gap` s."""
+    sr = sr or SR
+    hop = int(0.01 * sr)
+    n = len(y) // hop
+    if n == 0:
+        return []
+    e = np.sqrt((y[:n * hop].reshape(n, hop) ** 2).mean(1))
+    on = e > 0.02 * (e.max() + 1e-9)
+    out, st, quiet = [], None, 0
+    for i, v in enumerate(on):
+        if v:
+            st = i if st is None else st
+            quiet = 0
+        elif st is not None:
+            quiet += 1
+            if quiet >= int(min_gap * 100):
+                out.append((st, i - quiet + 1)); st, quiet = None, 0
+    if st is not None:
+        out.append((st, n))
+    return [(a * hop, b * hop) for a, b in out if (b - a) * 0.01 >= min_len]
+
+
+def tone_profile(ref):
+    """Pitch register of the approved reference: overall median and the range its phrases move in."""
+    f0 = median_f0(ref)
+    sts = [12 * np.log2(f / f0) for f in (median_f0(ref[a:b]) for a, b in phrases(ref)) if f]
+    return {"f0": f0, "lo": min(sts + [-1.5]) - 0.3, "hi": max(sts + [1.5]) + 0.3}
+
+
+def _shift_exact(y, st):
+    """Pitch-shift by `st` semitones, keeping the exact length (timings stay valid)."""
+    if abs(st) < 0.1 or len(y) < int(0.05 * SR):
+        return y
+    z = shape(y, 1.0, st)
+    return np.pad(z, (0, max(0, len(y) - len(z))))[:len(y)].astype(np.float32)
+
+
+def lock_pitch(y, prof, center_tol=0.4):
+    """Keep a line in the reference's register: move the whole line so its median sits on the reference
+    median (when off by more than center_tol), then pull any phrase that leaves the reference's own phrase
+    range back to its edge. Cuts only happen in silences, so no seams inside words."""
+    f = median_f0(y)
+    if not f:
+        return y
+    m = 12 * np.log2(f / prof["f0"])
+    if abs(m) > center_tol:
+        y = _shift_exact(y, max(-4.0, min(4.0, -m)))
+    y = y.copy()
+    for a, b in phrases(y):
+        fp = median_f0(y[a:b])
+        if not fp:
+            continue
+        st = 12 * np.log2(fp / prof["f0"])
+        if st > prof["hi"] or st < prof["lo"]:
+            y[a:b] = _shift_exact(y[a:b], (prof["hi"] if st > prof["hi"] else prof["lo"]) - st)
+    return y
+
+
 def _raw_segment(engine, seg, emo, E, card, cfg, cache_dir, model_box, speed):
     """Synthesise one segment (no pause inside) and cache the RAW take, so level / tone / pace can be
     re-tuned later without re-synthesising. Returns (audio, char_times)."""
@@ -468,6 +527,7 @@ def synth_sentences(lines, cfg, cache_dir, project=None, emos=None):
     card = load_card(engine.split(":", 1)[1], project) if (is_vox and ":" in engine) else None
     locked = bool(card and card.get("lock_tone"))
     ref = read_audio(card["wav"]) if locked else None
+    prof = tone_profile(ref) if locked else None
     for li, text in enumerate(lines):
         emo, E = emotion(emos[li] if emos else None)
         H = EMO["hook"]
@@ -502,7 +562,10 @@ def synth_sentences(lines, cfg, cache_dir, project=None, emos=None):
                 if off + i < len(times):
                     times[off + i] = (t + a, t + b)
             pieces.append(y); t += len(y) / SR
-        y = level(np.concatenate(pieces) if pieces else np.zeros(int(0.2 * SR), np.float32), gain)
+        y = np.concatenate(pieces) if pieces else np.zeros(int(0.2 * SR), np.float32)
+        if locked:
+            y = lock_pitch(y, prof)
+        y = level(y, gain)
         last = 0.0
         for i in range(len(times)):                          # characters with no sound keep the running time
             if times[i] == (0.0, 0.0) and i > 0:
