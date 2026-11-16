@@ -390,74 +390,126 @@ def _vox_take(model, text, card, style, desc, expect, emo="story"):
     return y
 
 
+def _ltas(x, n=2048):
+    """Long-term average spectrum (power per FFT bin) over the voiced frames."""
+    from scipy.signal import stft
+    _, _, Z = stft(x, nperseg=n, noverlap=n * 3 // 4)
+    P = np.abs(Z) ** 2
+    e = P.sum(0)
+    keep = e > np.percentile(e, 40)
+    return P[:, keep].mean(1) if keep.any() else P.mean(1)
+
+
+def match_tone(y, ref, max_db=6.0, n=2048):
+    """Give `y` the tonal balance (weight, warmth, brightness) of `ref` with a smooth static EQ
+    (1/3-octave smoothing, at most +-max_db). Level is handled separately."""
+    from scipy.signal import istft, stft
+    if len(y) < n * 2 or len(ref) < n * 2:
+        return y
+    f = np.fft.rfftfreq(n, 1 / SR)
+    g = 10 * np.log10((_ltas(ref, n) + 1e-12) / (_ltas(y, n) + 1e-12))
+    sm = np.empty_like(g)
+    for i, fc in enumerate(f):                               # 1/3-octave smoothing
+        lo, hi = max(1.0, fc) / 2 ** (1 / 6), max(1.0, fc) * 2 ** (1 / 6)
+        sel = (f >= lo) & (f <= hi)
+        sm[i] = g[sel].mean() if sel.any() else g[i]
+    band = (f > 90) & (f < 9000)
+    sm -= np.average(sm[band], weights=1 / np.maximum(f[band], 90))   # keep overall level roughly unchanged
+    sm[f < 70] = min(0.0, sm[(f >= 70)][0])                  # never boost rumble
+    gain = 10 ** (np.clip(sm, -max_db, max_db) / 20)
+    _, _, Z = stft(y, nperseg=n, noverlap=n * 3 // 4)
+    _, out = istft(Z * gain[:, None], nperseg=n, noverlap=n * 3 // 4)
+    return out[:len(y)].astype(np.float32)
+
+
+def _raw_segment(engine, seg, emo, E, card, cfg, cache_dir, model_box, speed):
+    """Synthesise one segment (no pause inside) and cache the RAW take, so level / tone / pace can be
+    re-tuned later without re-synthesising. Returns (audio, char_times)."""
+    is_vox = engine.startswith("vox")
+    style = E["style"] if (is_vox and card and card.get("perform", True)) else None
+    key = hashlib.sha1(json.dumps(["raw2", engine, seg, SR, style, emo if is_vox else None,
+                                   None if is_vox else speed], ensure_ascii=False).encode()).hexdigest()[:18]
+    fa, fj = os.path.join(cache_dir, key + ".npy"), os.path.join(cache_dir, key + ".json")
+    if os.path.exists(fa) and os.path.exists(fj):
+        return np.load(fa), [tuple(x) for x in json.load(open(fj))], False
+    if is_vox:
+        model_box[0] = model_box[0] or get_vox()
+        y = _vox_take(model_box[0], seg, card, E["style"], cfg.get("voice_desc"), sum(_char_weights(seg)) or 1.0, emo)
+        tt = _scaled_times(seg, len(y) / SR)
+    elif engine == "mms":
+        model_box[0] = model_box[0] or MMS()
+        y, tt = model_box[0].say(seg, speed)
+        y, o = trim_silence(y)
+        tt = [(max(0.0, a - o), max(0.0, b - o)) for a, b in tt]
+    elif engine.startswith("edge"):
+        v = engine.split(":", 1)[1] if ":" in engine else "female"
+        y, tt = edge_say(seg, EDGE_VOICES.get(v, v), speed)
+        y, o = trim_silence(y)
+        tt = [(max(0.0, a - o), max(0.0, b - o)) for a, b in tt]
+    else:
+        raise ValueError("voice engine ບໍ່ຮູ້ຈັກ: " + engine)
+    np.save(fa, y.astype(np.float32)); json.dump(tt, open(fj, "w"))
+    return y, tt, True
+
+
 def synth_sentences(lines, cfg, cache_dir, project=None, emos=None):
     """lines: display texts; emos: one emotion name per line (None = story).
-    Returns list of dicts {audio, dur, gap, emo, tokens:[{t,a,b}], spoken, missing}."""
+    Returns list of dicts {audio, dur, gap, emo, tokens:[{t,a,b}], spoken, missing}.
+
+    Tone-locked cards ("lock_tone": true - the voice Joe approved): every line keeps the weight of the
+    approved reference take - same loudness and pace as the opening (hook) line, the reference's tonal
+    balance (match_tone) and its pitch (checked in _vox_take). Emotion then lives in the words and pauses."""
     engine = cfg.get("voice", "mms")
     base_speed = float(cfg.get("speed", 1.0))
     say = cfg.get("say", {})
     os.makedirs(cache_dir, exist_ok=True)
-    model, out = None, []
+    model_box, out = [None], []
     english, is_vox = use_english(cfg), engine.startswith("vox")
+    card = load_card(engine.split(":", 1)[1], project) if (is_vox and ":" in engine) else None
+    locked = bool(card and card.get("lock_tone"))
+    ref = read_audio(card["wav"]) if locked else None
     for li, text in enumerate(lines):
         emo, E = emotion(emos[li] if emos else None)
+        H = EMO["hook"]
+        speed = base_speed * (H["speed"] if locked else E["speed"])
+        gain = H["gain"] if locked else E["gain"]
+        pitch = 0.0 if (locked or is_vox and card and card.get("lock_tone")) else E["pitch"]
         toks, spoken, spans, missing = laotext.speech_plan(text, say, english, punct=is_vox)
-        key = hashlib.sha1(json.dumps([engine, base_speed, spoken, SR, emo, E], ensure_ascii=False,
-                                      sort_keys=True).encode()).hexdigest()[:16]
-        fa, fj = os.path.join(cache_dir, key + ".npy"), os.path.join(cache_dir, key + ".json")
-        if os.path.exists(fa) and os.path.exists(fj):
-            y, times = np.load(fa), json.load(open(fj))
-        else:
-            speed = base_speed * E["speed"]
-            # split the line at every "..." so the pause is real silence of a chosen length
-            parts, pos = [], 0
-            for seg in spoken.split(laotext.PAUSE):
-                parts.append((pos, seg)); pos += len(seg) + 1
-            pieces, times, t = [], [(0.0, 0.0)] * len(spoken), 0.0
+        parts, pos = [], 0                                   # split at every "..." -> real pauses
+        for seg in spoken.split(laotext.PAUSE):
+            parts.append((pos, seg)); pos += len(seg) + 1
+        pieces, times, t = [], [(0.0, 0.0)] * len(spoken), 0.0
+        fresh = False
+        for off, seg in parts:
+            if not seg.strip():
+                continue
+            y, tt, new = _raw_segment(engine, seg, emo, E, card, cfg, cache_dir, model_box, speed)
+            fresh = fresh or new
             if is_vox:
-                model = model or get_vox()
-                card = load_card(engine.split(":", 1)[1], project) if ":" in engine else None
-            for k, (off, seg) in enumerate(parts):
-                if not seg.strip():
-                    continue
-                if is_vox:
-                    y = _vox_take(model, seg, card, E["style"], cfg.get("voice_desc"),
-                                  sum(_char_weights(seg)) or 1.0, emo)
-                    locked = bool(card and card.get("lock_tone"))  # a locked tone gets no pitch offsets
-                    y = shape(y, speed, 0.0 if locked else E["pitch"])
-                    tt = _scaled_times(seg, len(y) / SR)
-                elif engine == "mms":
-                    model = model or MMS()
-                    y, tt = model.say(seg, speed)
-                    y, o = trim_silence(y)
-                    tt = [(max(0.0, a - o), max(0.0, b - o)) for a, b in tt]
-                    if abs(E["pitch"]) > 0.05:
-                        y = shape(y, 1.0, E["pitch"])
-                elif engine.startswith("edge"):
-                    v = engine.split(":", 1)[1] if ":" in engine else "female"
-                    y, tt = edge_say(seg, EDGE_VOICES.get(v, v), speed)
-                    y, o = trim_silence(y)
-                    tt = [(max(0.0, a - o), max(0.0, b - o)) for a, b in tt]
-                else:
-                    raise ValueError("voice engine ບໍ່ຮູ້ຈັກ: " + engine)
-                if pieces:                                  # the pause before this segment
-                    n = int(E["pause"] * SR)
-                    pieces.append(np.zeros(n, np.float32)); t += n / SR
-                    if off - 1 < len(times):
-                        times[off - 1] = (t - n / SR, t)
-                for i, (a, b) in enumerate(tt):
-                    if off + i < len(times):
-                        times[off + i] = (t + a, t + b)
-                pieces.append(y); t += len(y) / SR
-            y = level(np.concatenate(pieces) if pieces else np.zeros(int(0.2 * SR), np.float32), E["gain"])
-            last = 0.0
-            for i in range(len(times)):                     # characters with no sound keep the running time
-                if times[i] == (0.0, 0.0) and i > 0:
-                    times[i] = (last, last)
-                last = times[i][1]
-            if is_vox:
-                print(f"    ✓ {len(y) / SR:4.1f} ວິ  [{emo}] {text[:44]}", flush=True)
-            np.save(fa, y); json.dump(times, open(fj, "w"))
+                k0 = len(y)
+                y = shape(y, speed, pitch)
+                tt = [(a * len(y) / k0, b * len(y) / k0) for a, b in tt]
+            elif abs(pitch) > 0.05:
+                y = shape(y, 1.0, pitch)
+            if locked:
+                y = match_tone(y, ref)
+            if pieces:
+                n = int(E["pause"] * SR)
+                pieces.append(np.zeros(n, np.float32)); t += n / SR
+                if off - 1 < len(times):
+                    times[off - 1] = (t - n / SR, t)
+            for i, (a, b) in enumerate(tt):
+                if off + i < len(times):
+                    times[off + i] = (t + a, t + b)
+            pieces.append(y); t += len(y) / SR
+        y = level(np.concatenate(pieces) if pieces else np.zeros(int(0.2 * SR), np.float32), gain)
+        last = 0.0
+        for i in range(len(times)):                          # characters with no sound keep the running time
+            if times[i] == (0.0, 0.0) and i > 0:
+                times[i] = (last, last)
+            last = times[i][1]
+        if is_vox and fresh:
+            print(f"    ✓ {len(y) / SR:4.1f} ວິ  [{emo}] {text[:44]}", flush=True)
         dur = len(y) / SR
         tk = []
         for t_, (a, b) in zip(toks, spans):
