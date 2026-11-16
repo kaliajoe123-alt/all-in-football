@@ -50,4 +50,4 @@ Joe ຂຽນພາສາລາວ — **ຕອບເປັນພາສາລາ
 - API key: ໃນ cloud session ໃຊ້ Network secret ຂອງ `generativelanguage.googleapis.com` (header `x-goog-api-key`); ໃນຄອມ ໃຊ້ `GEMINI_API_KEY`. ບໍ່ມີ key → ບອກວິທີໃສ່ ແລະ ຢ່າໃຫ້ວາງ key ໃນແຊັດ.
 - ໂຄຕ້າຟຣີ ~10 ເທື່ອ/ມື້/ໂມເດລ. ໝົດທຸກໂມເດລ → ບອກ Joe (ລໍມື້ໃໝ່ ຫຼື ເປີດ billing).
 - ຢາກເອົາໄປໃສ່ວີດີໂອ: ໃຊ້ skill `lao-football-video` ກັບ `voice: file:<ໄຟລ໌ນີ້>.mp3`.
-- ເມື່ອ Joe ຂໍ "ຄລິບ" ຫຼື "ວີດີໂອ" ໂດຍບໍ່ລະບຸສຽງ: **ຖາມທຸກຄັ້ງວ່າໃຊ້ສຽງໃຜ** (pak-kuan / chanthy-fans / ສຽງອັດເອງ) ກ່ອນສ້າງສຽງ.
+- ເມື່ອ Joe ຂໍ "ຄລິບ" ຫຼື "ວີດີໂອ": **ຖາມທຸກຄັ້ງ ລາຍການໃດ** (5 ລາຍການ ALL IN) **ແລະ ໃຊ້ສຽງໃຜ** (pak-kuan / chanthy-fans / ສຽງອັດເອງ) ກ່ອນສ້າງສຽງ — ເບິ່ງ `lao-football-video`.
