@@ -1,0 +1,10 @@
+{
+ "text": "ເຈົ້າເຊື່ອບໍ່, ທີມທີ່ຖືກນຳສອງປະຕູ ແລະເກືອບຈະໝົດຫວັງ ກັບສາມາດປ່ຽນທຸກຢ່າງໄດ້!",
+ "desc": "",
+ "label": "ສຽງຍິງ ໂທນຊ່ວງເປີດເລື່ອງທີ່ Joe ຮັບຮອງ (ລັອກໂທນ)",
+ "gender": "ຍິງ",
+ "perform": false,
+ "lock_tone": true,
+ "f0_hz": 235,
+ "engine": "VoxCPM2; reference = the opening take of hype_f_keep that Joe approved"
+}

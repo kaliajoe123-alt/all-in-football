@@ -153,21 +153,53 @@ class Renderer:
 
     # ---------------------------------------------------------------- captions
     def _build_captions(self):
+        """captions: key  -> only the *starred* key phrases pop up while they are spoken (default)
+                     full -> the whole narration, word-by-word highlight
+                     off  -> nothing"""
         L = self.L
-        self.caps = []                                       # (start, end, sentence_idx, tokens, flags, timed)
+        mode = self.meta.get("captions", "key")
+        mode = "full" if mode is True else "off" if mode in (False, None, "none", "off") else str(mode)
+        self.caps = []                                       # [start, end, sentence, lines, flags, timed, style]
         for si, s in enumerate(self.tl["sentences"]):
-            if s.get("nocap") or not self.meta.get("captions", True):
+            if s.get("nocap") or mode == "off":
                 continue
             toks = s["tokens_all"]
-            lines = laotext.wrap_tokens(toks, lambda x: gfx.text_w(x, L["cap_size"]), L["cap_w"] - 80)
-            flags_all = gfx.key_flags(toks, s["keys"])
-            # map every display token to its timing (tokens without sound inherit the next timed one)
-            timed, ti = [], 0
+            timed, ti = [], 0                                # display token -> its timing (None = silent)
             for t in toks:
                 if ti < len(s["tokens"]) and s["tokens"][ti]["t"] == t:
                     timed.append(s["tokens"][ti]); ti += 1
                 else:
                     timed.append(None)
+            if mode == "key":
+                flags = gfx.key_flags(toks, s["keys"], numbers=False)
+                size = int(L["cap_size"] * 1.18)
+                j = 0
+                while j < len(toks):
+                    if not flags[j]:
+                        j += 1
+                        continue
+                    k = j
+                    while k + 1 < len(toks) and (flags[k + 1] or (toks[k + 1].strip() == "" and k + 2 < len(toks)
+                                                                    and flags[k + 2])):
+                        k += 1
+                    run = list(range(j, k + 1))
+                    tt = [timed[x] for x in run if timed[x]]
+                    if tt:
+                        pairs = [(toks[x], x) for x in run]
+                        lines, cur = [], []
+                        for tok, x in pairs:                 # wrap long key phrases
+                            if cur and gfx.text_w("".join(toks[y] for y in cur) + tok, size) > L["cap_w"] - 80:
+                                lines.append(cur); cur = []
+                            if cur or tok.strip():
+                                cur.append(x)
+                        if cur:
+                            lines.append(cur)
+                        self.caps.append([s["start"] + max(0.0, tt[0]["a"] - 0.08), s["start"] + tt[-1]["b"] + 1.1,
+                                          si, lines[:2], [True] * len(toks), timed, "key"])
+                    j = k + 1
+                continue
+            lines = laotext.wrap_tokens(toks, lambda x: gfx.text_w(x, L["cap_size"]), L["cap_w"] - 80)
+            flags_all = gfx.key_flags(toks, s["keys"])
             pos, chunks = 0, []
             for i in range(0, len(lines), L["cap_lines"]):
                 grp = lines[i:i + L["cap_lines"]]
@@ -183,7 +215,7 @@ class Renderer:
                 if first is None:
                     continue
                 a = s["start"] + (0.0 if ci == 0 else first)
-                self.caps.append([a, s["end"] + 0.12, si, idx, flags_all, timed])
+                self.caps.append([a, s["end"] + 0.12, si, idx, flags_all, timed, "full"])
         self.caps.sort(key=lambda c: c[0])
         for i in range(len(self.caps) - 1):
             if self.caps[i + 1][0] < self.caps[i][1]:
@@ -192,9 +224,9 @@ class Renderer:
 
     @functools.lru_cache(maxsize=256)
     def _cap_sprite(self, ci, active):
-        a, b, si, idx, flags, timed = self.caps[ci]
+        a, b, si, idx, flags, timed, style = self.caps[ci]
         toks = self.tl["sentences"][si]["tokens_all"]
-        size, th = self.L["cap_size"], self.th
+        size, th = (int(self.L["cap_size"] * 1.18) if style == "key" else self.L["cap_size"]), self.th
         lh = int(size * 1.5)
         widths = [gfx.text_w("".join(toks[j] for j in line), size) for line in idx]
         px, py = 34, 10
@@ -218,16 +250,19 @@ class Renderer:
         i = bisect.bisect_right(self.cap_starts, t) - 1
         if i < 0 or t >= self.caps[i][1]:
             return
-        a, b, si, idx, flags, timed = self.caps[i]
+        a, b, si, idx, flags, timed, style = self.caps[i]
         rel = t - self.tl["sentences"][si]["start"]
         active = -1
-        for line in idx:
-            for j in line:
-                if timed[j] and timed[j]["a"] <= rel:
-                    active = j
+        if style == "full":
+            for line in idx:
+                for j in line:
+                    if timed[j] and timed[j]["a"] <= rel:
+                        active = j
         sp, m = self._cap_sprite(i, active)
-        p = gfx.ease_out((t - a) / 0.12)
-        gfx.paste(frame, sp, self.W / 2 - sp.size[0] / 2, self.L["cap_y"] - sp.size[1] / 2 + (1 - p) * 10, alpha=p)
+        p = gfx.ease_out((t - a) / 0.14)
+        out = gfx.clamp((b - t) / 0.18) if style == "key" else 1.0
+        scale = (0.86 + 0.14 * gfx.back(p)) if style == "key" else 1.0
+        gfx.paste(frame, sp, self.W / 2, self.L["cap_y"] + (1 - p) * 10, alpha=min(p, out), scale=scale, anchor="c")
 
     # ---------------------------------------------------------------- media
     def _plan_layouts(self):

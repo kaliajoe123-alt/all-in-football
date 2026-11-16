@@ -71,8 +71,8 @@ def draw_text(d, x, base, text, size, fill, stroke=0, stroke_fill=None):
     return x
 
 
-def key_flags(tokens, keys):
-    """Which tokens are key words: inside a *starred* phrase, or a number."""
+def key_flags(tokens, keys, numbers=True):
+    """Which tokens are key words: inside a *starred* phrase, or (optionally) a number."""
     text = "".join(tokens)
     marks = [False] * len(text)
     for k in keys:
@@ -81,7 +81,7 @@ def key_flags(tokens, keys):
                 marks[i] = True
     out, pos = [], 0
     for t in tokens:
-        out.append(bool(t.strip()) and (any(marks[pos:pos + len(t)]) or bool(laotext.NUM.fullmatch(t))))
+        out.append(bool(t.strip()) and (any(marks[pos:pos + len(t)]) or (numbers and bool(laotext.NUM.fullmatch(t)))))
         pos += len(t)
     return out
 
@@ -116,8 +116,14 @@ def wrap_pairs(pairs, size, max_w):
     for tok, fl in pairs:
         trial = "".join(t for t, _ in cur) + tok
         if cur and text_w(trial.rstrip(), size) > max_w:
-            lines.append(cur)
-            cur = [] if tok.strip() == "" else [(tok, fl)]
+            # prefer breaking at the last space: the word segmenter can split unknown Lao words (ເບກ -> ເບ|ກ)
+            sp = max((i for i, (t, _) in enumerate(cur) if t.strip() == ""), default=-1)
+            if tok.strip() and sp > 0 and text_w("".join(t for t, _ in cur[sp + 1:]) + tok, size) <= max_w:
+                lines.append(cur[:sp])
+                cur = cur[sp + 1:] + [(tok, fl)]
+            else:
+                lines.append(cur)
+                cur = [] if tok.strip() == "" else [(tok, fl)]
         else:
             cur.append((tok, fl))
     if cur:

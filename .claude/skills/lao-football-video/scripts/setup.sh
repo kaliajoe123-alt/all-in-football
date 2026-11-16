@@ -17,4 +17,13 @@ for f in model.onnx tokens.txt; do
       && mv "$dir/$f.part" "$dir/$f" || echo "ໂຫຼດໂມເດລສຽງບໍ່ໄດ້ ($f) — ຈະລອງໃໝ່ຕອນ render"
   fi
 done
+if [ "$1" = "--vox" ]; then
+  # ສຽງພາກຄຸນນະພາບສູງ VoxCPM2 (ໃຫຍ່: PyTorch + ໂມເດລ ~5 GB, ໃຊ້ເວລາ 5-10 ນາທີ)
+  python3 -c "import voxcpm" 2>/dev/null || {
+    python3 -m pip install -q --disable-pip-version-check --root-user-action=ignore -U setuptools || true
+    python3 -m pip install -q --disable-pip-version-check --root-user-action=ignore --use-pep517 voxcpm soundfile scipy
+  }
+  HF_HUB_DISABLE_XET=1 python3 -c "from huggingface_hub import snapshot_download; snapshot_download('openbmb/VoxCPM2')" \
+    >/dev/null 2>&1 || echo "ໂຫຼດ VoxCPM2 ບໍ່ໄດ້ — ຈະລອງໃໝ່ຕອນ render"
+fi
 echo "Lao Video Studio ພ້ອມໃຊ້"
