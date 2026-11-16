@@ -105,6 +105,24 @@ class Renderer:
         gfx.draw_text(d, x, int(size * 1.34), name, size, gfx.rgb(self.th["lime"]))
         return box
 
+    def _show_logo(self, show):
+        """The show's own logo (assets/brand/logos/shows.json maps show names to files), sized for the corner."""
+        import json
+        d = os.path.join(gfx.ROOT, "assets", "brand", "logos")
+        try:
+            table = json.load(open(os.path.join(d, "shows.json"), encoding="utf-8"))
+        except OSError:
+            return None
+        key = next((k for k in table if k.lower() == show.strip().lower()), None)
+        if not key:
+            return None
+        im = Image.open(os.path.join(d, table[key])).convert("RGBA")
+        max_w, max_h = (230, 104) if self.meta["aspect"] != "9:16" else (360, 150)
+        sc = min(max_w / im.size[0], max_h / im.size[1])
+        im = im.resize((max(1, int(im.size[0] * sc)), max(1, int(im.size[1] * sc))), Image.LANCZOS)
+        sp, m = gfx.shadowed(im, blur=6, offset=(0, 3), alpha=90)
+        return sp.crop((m - 6, m - 6, sp.size[0] - m + 6, sp.size[1] - m + 10))
+
     def _build_static(self):
         L, th = self.L, self.th
         self.paper = gfx.paper(self.W, self.H, th)
@@ -116,8 +134,8 @@ class Renderer:
         self.logo = logo
         self.ui.append((logo, L["logo_xy"][0], L["logo_xy"][1]))
         if self.meta.get("show"):
-            badge = gfx.pill(str(self.meta["show"]), 34, gfx.rgb(th["white"]), gfx.rgb(th["accent"]) + (255,),
-                             say=self.say)
+            badge = self._show_logo(str(self.meta["show"])) or gfx.pill(
+                str(self.meta["show"]), 34, gfx.rgb(th["white"]), gfx.rgb(th["accent"]) + (255,), say=self.say)
             self.ui.append((badge, L["badge_xy"][0], L["badge_xy"][1]))
             self.badge_h = badge.size[1]
             self.badge_w = badge.size[0]
@@ -390,7 +408,7 @@ class Renderer:
             if p > 0:
                 iw, ih = sp.size[0] - 2 * m, sp.size[1] - 2 * m
                 if self.meta["aspect"] == "9:16":             # sits on the card's top edge
-                    cx_, cy_ = x + w - 20 - iw / 2, y + ih * 0.2
+                    cx_, cy_ = x + w - 20 - iw / 2, y + ih * 0.62   # below the channel logo
                 else:                                         # hangs off the card's right edge (clear of faces)
                     cx_, cy_ = min(self.W - 30 - iw / 2, x + w + 96 - iw / 2), y + 34 + ih / 2
                 gfx.paste(frame, sp, cx_, cy_, alpha=gfx.clamp(p * 2), scale=0.55 + 0.45 * gfx.back(p), anchor="c")
@@ -519,10 +537,10 @@ class Renderer:
             chip = self.chips[sh["chapter"]] if sh.get("chapter") is not None else None
             if chip is not None:
                 x0, y0 = self.L["badge_xy"]
-                if self.meta["aspect"] == "9:16":
-                    gfx.paste(frame, chip, x0, y0 + self.badge_h + 12)
-                else:
+                if self.meta["aspect"] == "9:16":           # beside the show logo, above the picture card
                     gfx.paste(frame, chip, x0 + self.badge_w + 14, y0 + (self.badge_h - chip.size[1]) / 2)
+                else:                                       # top band, aligned with the picture card
+                    gfx.paste(frame, chip, self.L["card"][0], 40)
             if sh["kind"] == "media" and sh["layout"] == "full" and self.handle:
                 gfx.paste(frame, self.handle, self.W / 2 - self.handle.size[0] / 2, self.L["handle_y"])
             self._draw_caption(frame, t)
