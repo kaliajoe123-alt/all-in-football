@@ -4,7 +4,7 @@ slug: liv_mu_preview_2026-11-22
 show: ເກມເດືອດ
 handle: "@ALLINFootball"
 aspect: "9:16"
-voice: "file:pakkuan_liv_mu_v2.mp3"
+voice: "file:pakkuan_liv_mu_v3.mp3"
 music: tension
 captions: key
 cta: ແທັກໝູ່ແຟນຫົງ ກັບແຟນຜີ ມາທາຍຜົນແດ່!
@@ -16,7 +16,7 @@ hashtags: "#ແດງເດືອດ #ລີເວີພູ #ແມນຢູ #LI
 ---
 # ເປີດເລື່ອງ
 [img: Anfield stadium Liverpool | full] ແດງເດືອດຮອບນີ້ ບອກກັນກົງໆ, *ແມນຢູ ໄປແອນຟິວ* ຄືຂີ່ຕຸກຕຸກລົງເປີ້ນ ແລ້ວລືມເບກໄວ້ເຮືອນ!
-[img: Anfield Liverpool Kop | stat: 23:30 = ອາທິດ 22 ພະຈິກ · ເວລາລາວ] ເຕະຄືນວັນອາທິດ ວັນທີຊາວສອງ ພະຈິກ ຫ້າທຸ່ມເຄິ່ງບ້ານເຮົາ, ລີເວີພູ ເປັນເຈົ້າບ້ານ.
+[img: Anfield Liverpool Kop | stat: 23:30 = ອາທິດ 22 ພະຈິກ · ເວລາລາວ] ເຕະຄືນວັນອາທິດ ວັນທີຊາວສອງ ພະຈິກ, ສິບເອັດໂມງເຄິ່ງ ເວລາບ້ານເຮົາ, ລີເວີພູ ເປັນເຈົ້າບ້ານ.
 [img: Liverpool Manchester United match Anfield] ທີມໜຶ່ງຢູ່ອັນດັບສີ່ ອີກທີມຢູ່ອັນດັບສິບແປດ, ແຕ່ຄູ່ນີ້ *ອັນດັບບໍ່ເຄີຍຊ່ວຍໃຜ*ໄດ້ເລີຍ.
 [img: Premier League trophy; Anfield Liverpool Kop #3 | stat: 20 : 20 = ແຊ້ມລີກອັງກິດ ເທົ່າກັນ] ເພາະສອງທີມນີ້ ແຊ້ມລີກອັງກິດ *ຊາວສະໄໝເທົ່າກັນ*, ຢູ່ອັນດັບໃດ ກໍບໍ່ມີໃຜຍອມໃຜ.
 
@@ -57,4 +57,4 @@ hashtags: "#ແດງເດືອດ #ລີເວີພູ #ແມນຢູ #LI
 # ທາຍຜົນ
 [img: Anfield stadium Liverpool #3 | full] ເບິ່ງຕາມຟອມ ລີເວີພູ ໄດ້ປຽບ. ແຕ່ *ແດງເດືອດ ບໍ່ເຄີຍຟັງຟອມ*.
 [img: Anfield stadium night; Anfield Liverpool Kop #2 | stat: 2-2 = ອ້າຍບ່າວຂ້າງບ້ານທາຍ] ອ້າຍບ່າວຂ້າງບ້ານ ເລີຍຂໍທາຍ ສອງຕໍ່ສອງ, ປະຕູວຸ້ນທັງສອງຝັ່ງ — ຖ້າທາຍຜິດ ກໍຂໍອະໄພໄວ້ກ່ອນ ຄືຄູຝຶກໃໝ່ແມນຢູ ທີ່ຍັງຈື່ຊື່ລູກທີມບໍ່ທັນໝົດ!
-[img: Liverpool fans singing Anfield; Stretford End Old Trafford | full] ແທັກໝູ່ທີ່ເປັນແຟນຫົງ ກັບແຟນຜີ ມາທາຍຜົນແຂ່ງກັນ. ເຈີກັນ ຫ້າທຸ່ມເຄິ່ງ ຄືນວັນອາທິດ!
+[img: Liverpool fans singing Anfield; Stretford End Old Trafford | full] ແທັກໝູ່ທີ່ເປັນແຟນຫົງ ກັບແຟນຜີ ມາທາຍຜົນແຂ່ງກັນ. ເຈີກັນ ສິບເອັດໂມງເຄິ່ງ ຄືນວັນອາທິດ!
