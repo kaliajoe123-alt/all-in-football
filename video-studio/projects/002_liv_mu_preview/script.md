@@ -1,7 +1,7 @@
 ---
 title: ແດງເດືອດ ແອນຟິວ // ແມນຢູ ໄປແບບ *ລືມເບກ?*
 slug: liv_mu_preview_2026-11-22
-show: ພາກແບບກວນໆ
+show: ເກມເດືອດ
 handle: "@ALLINFootball"
 aspect: "9:16"
 voice: "file:pakkuan_liv_mu.mp3"
