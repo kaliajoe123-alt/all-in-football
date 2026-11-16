@@ -60,10 +60,15 @@ def main(argv=None):
     return 0
 
 
-REF_TEXT = ("ສະບາຍດີ ທ່ານຜູ້ຊົມທຸກທ່ານ ຍິນດີຕ້ອນຮັບເຂົ້າສູ່ລາຍການເຕະບານຂອງພວກເຮົາ "
-            "ມື້ນີ້ເຮົາຈະມາເວົ້າເລື່ອງ Premier League ແລະ Champions League")
-TEST_TEXT = ("ປີ 2016 Pep Guardiola ມາຄຸມ Manchester City ແລະ ຕັດສິນໃຈປ່ອຍ Joe Hart ອອກຈາກທີມ. "
-             "ປີຕໍ່ມາ ລາວຈ່າຍ 35 ລ້ານປອນ ຊື້ Ederson ຈາກ Benfica ແລ້ວຄວ້າແຊ້ມ Premier League ດ້ວຍ 100 ຄະແນນ!")
+REF_TEXT = ("ໂອ້ໂຫ ພີ່ນ້ອງເອີ້ຍ! ມື້ນີ້ມີເລື່ອງມັນໆ ມາເລົ່າສູ່ຟັງ. ບານເຕະຄືນນີ້ ບໍ່ທຳມະດາແທ້ໆ, "
+            "ເຊື່ອບໍ່ວ່າເກີດຫຍັງຂຶ້ນ?")
+# Joe's own example of emotional control: one comeback story in four moods
+TEST_LINES = [
+    ("hook", "ເຈົ້າເຊື່ອບໍ່... ທີມທີ່ຖືກນຳສອງປະຕູ ແລະເກືອບຈະໝົດຫວັງ ກັບສາມາດປ່ຽນທຸກຢ່າງໄດ້!"),
+    ("suspense", "ເວລາເຫຼືອບໍ່ຫຼາຍ... ແຟນບານບາງຄົນເລີ່ມຖອດໃຈ... ແຕ່ຢູ່ໆ ທຸກຢ່າງກໍປ່ຽນໄປ!"),
+    ("climax", "ປະຕູທຳອິດມາແລ້ວ! ປະຕູທີສອງຕາມມາ! ແລະປະຕູສຸດທ້າຍ... ໂອ້ໂຫ! ນີ້ມັນປາຕິຫານຊັດໆ!"),
+    ("calm", "ນີ້ແຫຼະບານເຕະ... ຕາບໃດທີ່ກຳມະການຍັງບໍ່ເປົ່ານົກຫວີດ ທຸກຢ່າງກໍຍັງເປັນໄປໄດ້!"),
+]
 
 
 def voices_cmd(a):
@@ -80,22 +85,52 @@ def voices_cmd(a):
     if a.cmd == "voice-add":
         print(voice.add_voice(a.name, a.wav, a.text, label=a.label, gender=a.gender))
         return 0
+    import numpy as np
+    from . import sound
     cards = voice.list_cards()
     names = [n for n in (a.voices.split(",") if a.voices else cards) if n]
     os.makedirs(a.out, exist_ok=True)
-    spoken = laotext.speech_plan(a.text or TEST_TEXT, english=True)[1]
-    model = voice.Vox()
+    lines = [("story", a.text)] if a.text else TEST_LINES
     for n in names:
-        y = model.say(spoken, card=voice.load_card(n))
-        y, _ = voice.trim_silence(y)
+        sents = voice.synth_sentences([t for _, t in lines], {"voice": "vox:" + n},
+                                      os.path.join(a.out, ".cache"), emos=[e for e, _ in lines])
+        parts = []
+        for s_ in sents:
+            parts += [s_["audio"], np.zeros(int(s_["gap"] * voice.SR), np.float32)]
+            print(f"  {n:<8}{s_['emo']:<9}{voice_stats(s_['audio'], s_['spoken'])}", flush=True)
         wav = os.path.join(a.out, n + ".wav")
-        voice.write_wav(wav, y / (abs(y).max() + 1e-9) * 0.89)
+        voice.write_wav(wav, np.concatenate(parts))
+        gain = -16.0 - sound.loudness(wav, sound.VOICE_FX)        # one fixed gain: the dynamics stay
         mp3 = os.path.join(a.out, n + ".mp3")
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", wav, "-af", "loudnorm=I=-16:TP=-1.5", "-b:a", "160k", mp3],
-                       check=True)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", wav, "-af",
+                        f"{sound.VOICE_FX},volume={gain:.2f}dB,alimiter=limit=0.84:level=disabled", "-b:a", "160k",
+                        mp3], check=True)
         os.remove(wav)
-        print(mp3, f"{len(y) / voice.SR:.1f}s", flush=True)
+        print(mp3, flush=True)
     return 0
+
+
+def voice_stats(y, text):
+    """Objective proxies for a performance: pitch, pitch movement, level, pace."""
+    import numpy as np
+    from . import voice
+    x = voice.resample(y, voice.SR, 16000)
+    f = []
+    for i in range(0, len(x) - 1024, 320):
+        w = x[i:i + 1024] * np.hanning(1024)
+        if np.sqrt((w ** 2).mean()) < 0.012:
+            continue
+        ac = np.correlate(w, w, "full")[1023:]
+        ac /= ac[0] + 1e-9
+        k = 40 + int(np.argmax(ac[40:266]))
+        if ac[k] > 0.45:
+            f.append(16000 / k)
+    f = np.array(f) if f else np.array([1.0])
+    loud = y[np.abs(y) > 0.02]
+    rms = 20 * np.log10(float(np.sqrt((loud ** 2).mean())) + 1e-9) if len(loud) else -99
+    n = sum(1 for c in text if c.strip() and c not in ".!?,…")
+    return (f"pitch {np.median(f):4.0f} Hz  movement ±{np.std(12 * np.log2(f / np.median(f))):.1f} st  "
+            f"level {rms:5.1f} dB  pace {n / (len(y) / voice.SR):4.1f} ch/s  {len(y) / voice.SR:4.1f} s")
 
 
 if __name__ == "__main__":

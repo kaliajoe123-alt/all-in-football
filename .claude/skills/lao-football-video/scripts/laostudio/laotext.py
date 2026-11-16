@@ -112,7 +112,10 @@ def _lao_or_punct(s):
     return out
 
 
-def spoken_form(tok, say=None, prev="", english=False):
+PAUSE = "…"                                       # marks a dramatic pause ("..." in the script)
+
+
+def spoken_form(tok, say=None, prev="", english=False, punct=False):
     """What the voice says for one display token ('' = silent). Returns (text, ok).
     english=True: Latin words are passed on unchanged so a bilingual voice reads them as real English;
     a `say:` entry still wins when its value is itself Latin (a respelling such as Neuer -> Noy-er)."""
@@ -137,17 +140,19 @@ def spoken_form(tok, say=None, prev="", english=False):
         if tok.lower() in low:
             return low[tok.lower()], True
         return "", False                                # unknown Latin word -> needs a `say:` entry
-    if english and tok.strip() and tok.strip()[-1] in ",.!?":
-        return tok.strip()[-1] + " ", True              # bilingual voices use punctuation for intonation
+    if "..." in tok or "…" in tok:
+        return " " + PAUSE + " ", True                  # dramatic pause: the voice really stops here
+    if (english or punct) and tok.strip() and tok.strip()[-1] in ",.!?":
+        return tok.strip()[-1] + " ", True              # expressive voices use punctuation for intonation
     return " ", True                                    # punctuation -> pause
 
 
-def speech_plan(text, say=None, english=False):
+def speech_plan(text, say=None, english=False, punct=False):
     """-> (tokens, spoken, spans, missing). spans[i] = (start, end) char range of token i inside `spoken`."""
     toks = tokenize(text, say)
     spoken, spans, missing, prev = "", [], [], ""
     for t in toks:
-        s, ok = spoken_form(t, say, prev, english)
+        s, ok = spoken_form(t, say, prev, english, punct)
         if not ok:
             missing.append(t)
         if s.strip():

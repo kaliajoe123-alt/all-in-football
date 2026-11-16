@@ -119,11 +119,15 @@ class Vox:
         self.m = VoxCPM.from_pretrained("openbmb/VoxCPM2", load_denoiser=False)
         self.sr = self.m.tts_model.sample_rate
 
-    def say(self, spoken, card=None, desc=None, steps=10, cfg=2.0):
-        """card -> clone that voice (same timbre every call); desc -> design a new voice from a description."""
+    def say(self, spoken, card=None, desc=None, style=None, steps=10, cfg=2.0):
+        """card + style -> the card's timbre, performed in that style (emotion, energy)
+        card only    -> closest copy of the card's voice (flat, neutral delivery)
+        desc only    -> design a new voice from a description"""
         spoken = " ".join(spoken.split()).replace(" ,", ",").replace(" .", ".").replace(" !", "!").replace(" ?", "?")
         kw = dict(cfg_value=cfg, inference_timesteps=steps)
-        if card:
+        if card and style:
+            kw.update(text=f"({style}){spoken}", reference_wav_path=card["wav"])
+        elif card:
             kw.update(text=spoken, prompt_wav_path=card["wav"], prompt_text=card["text"],
                       reference_wav_path=card["wav"])
         else:
@@ -132,9 +136,19 @@ class Vox:
         return resample(y, self.sr, SR)
 
 
+_VOX = None
+
+
+def get_vox():
+    """One loaded model per process (loading takes minutes)."""
+    global _VOX
+    _VOX = _VOX or Vox()
+    return _VOX
+
+
 def design_voice(name, desc, text, out_dir=None, label="", gender="", model=None):
     """Create a voice card from a natural-language description. Returns the card folder."""
-    model = model or Vox()
+    model = model or get_vox()
     y = model.say(text, desc=desc)
     y, _ = trim_silence(y)
     y = (y / (np.abs(y).max() + 1e-9) * 0.89).astype(np.float32)
@@ -262,67 +276,160 @@ def trim_silence(y, thr=0.012, pad=0.06):
 
 
 def use_english(cfg):
-    """vox voices are bilingual: English names are read as English unless `english: lao` is set."""
-    return str(cfg.get("voice", "")).startswith("vox") and str(cfg.get("english", "native")) != "lao"
+    """Default: English names are read with their Lao reading from `say:` (Joe prefers this).
+    `english: native` lets a vox voice read Latin words as real English instead."""
+    return str(cfg.get("voice", "")).startswith("vox") and str(cfg.get("english", "lao")) == "native"
 
 
-def synth_sentences(lines, cfg, cache_dir, project=None):
-    """lines: list of display texts. Returns list of dicts {audio, dur, tokens:[{t,a,b}], spoken, missing}."""
+# How each emotion is PERFORMED. `style` steers the voice model (it changes pitch and energy but not
+# reliably the pace), so pace, loudness, pitch offset and pauses are also enforced here.
+#   speed  : speaking-rate factor          gain : dB relative to normal        pitch : semitones
+#   pause  : seconds of silence for every "..." in the line        gap : silence after the line
+EMO = {
+    "hook":     dict(style="strong, firm, dramatic voice, punchy and confident, grabbing attention",
+                     speed=1.00, gain=1.0, pitch=0.0, pause=0.40, gap=0.30),
+    "story":    dict(style="lively, warm, conversational storyteller chatting with friends, expressive ups and downs",
+                     speed=1.00, gain=0.0, pitch=0.0, pause=0.32, gap=0.24),
+    "suspense": dict(style="low, quiet, slow, suspenseful, tense, almost whispering",
+                     speed=0.90, gain=-4.0, pitch=-1.0, pause=0.65, gap=0.45),
+    "climax":   dict(style="very excited, loud, fast, high energy, shouting like a football commentator when a goal "
+                           "is scored", speed=1.06, gain=2.5, pitch=0.0, pause=0.22, gap=0.14),
+    "calm":     dict(style="calm, slow, warm, thoughtful and meaningful", speed=0.92, gain=-1.5, pitch=-0.6,
+                     pause=0.55, gap=0.40),
+    "funny":    dict(style="playful, teasing, amused, cheeky, holding back a laugh", speed=1.03, gain=0.5, pitch=0.3,
+                     pause=0.32, gap=0.22),
+    "angry":    dict(style="angry, frustrated, sharp and forceful", speed=1.03, gain=1.5, pitch=0.0, pause=0.30,
+                     gap=0.22),
+    "sad":      dict(style="sad, disappointed, soft and slow, heavy-hearted", speed=0.90, gain=-3.0, pitch=-0.8,
+                     pause=0.60, gap=0.42),
+    "happy":    dict(style="happy, bright, cheerful, smiling", speed=1.03, gain=1.0, pitch=0.3, pause=0.28, gap=0.22),
+    "question": dict(style="curious, intrigued, asking the audience a question, rising intonation", speed=0.98,
+                     gain=0.0, pitch=0.2, pause=0.40, gap=0.34),
+}
+EMO_ALIASES = {"normal": "story", "tense": "suspense", "excited": "climax", "close": "calm", "joke": "funny"}
+
+
+def emotion(name):
+    name = EMO_ALIASES.get(str(name or "story").lower(), str(name or "story").lower())
+    if name not in EMO:
+        raise ValueError(f"emo ບໍ່ຮູ້ຈັກ: {name} (ມີ: {', '.join(EMO)})")
+    return name, EMO[name]
+
+
+def shape(y, speed=1.0, pitch_st=0.0):
+    """Change pace and pitch without the chipmunk effect (rubberband, formants preserved)."""
+    if abs(speed - 1.0) < 0.005 and abs(pitch_st) < 0.05:
+        return y
+    import tempfile
+    a, b = tempfile.mktemp(suffix=".wav"), tempfile.mktemp(suffix=".wav")
+    write_wav(a, y)
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", a, "-af",
+                    f"rubberband=tempo={speed:.3f}:pitch={2 ** (pitch_st / 12):.4f}:formant=preserved:pitchq=quality",
+                    b], check=True)
+    out = read_audio(b); os.remove(a); os.remove(b)
+    return out
+
+
+def level(y, gain_db=0.0, target_rms=0.10):
+    """Same loudness for every take (RMS over the voiced part), then the emotion's gain on top."""
+    loud = y[np.abs(y) > 0.02]
+    rms = float(np.sqrt((loud ** 2).mean())) if len(loud) else 1.0
+    y = y * (target_rms / (rms + 1e-9)) * 10 ** (gain_db / 20)
+    pk = float(np.abs(y).max())
+    return (y * (0.97 / pk) if pk > 0.97 else y).astype(np.float32)
+
+
+def _vox_take(model, text, card, style, desc, expect):
+    """One take with a sanity check: the model sometimes skips or repeats words, so compare its length
+    with what the (reliable) MMS duration model expects and re-generate when it is far off."""
+    best = None
+    for attempt in range(3):
+        y = trim_silence(model.say(text, card=card, desc=desc, style=style))[0]
+        ratio = len(y) / SR / expect
+        if best is None or abs(ratio - 0.78) < best[0]:
+            best = (abs(ratio - 0.78), y)
+        if 0.45 <= ratio <= 1.35:
+            break
+        print(f"    … ຄວາມຍາວຜິດປົກກະຕິ (x{ratio:.2f}) ສັງເຄາະໃໝ່", flush=True)
+    return best[1]
+
+
+def synth_sentences(lines, cfg, cache_dir, project=None, emos=None):
+    """lines: display texts; emos: one emotion name per line (None = story).
+    Returns list of dicts {audio, dur, gap, emo, tokens:[{t,a,b}], spoken, missing}."""
     engine = cfg.get("voice", "mms")
-    speed = float(cfg.get("speed", 1.0))
+    base_speed = float(cfg.get("speed", 1.0))
     say = cfg.get("say", {})
     os.makedirs(cache_dir, exist_ok=True)
     model, out = None, []
-    english = use_english(cfg)
-    for text in lines:
-        toks, spoken, spans, missing = laotext.speech_plan(text, say, english)
-        key = hashlib.sha1(json.dumps([engine, speed, spoken, SR], ensure_ascii=False).encode()).hexdigest()[:16]
+    english, is_vox = use_english(cfg), engine.startswith("vox")
+    for li, text in enumerate(lines):
+        emo, E = emotion(emos[li] if emos else None)
+        toks, spoken, spans, missing = laotext.speech_plan(text, say, english, punct=is_vox)
+        key = hashlib.sha1(json.dumps([engine, base_speed, spoken, SR, emo, E], ensure_ascii=False,
+                                      sort_keys=True).encode()).hexdigest()[:16]
         fa, fj = os.path.join(cache_dir, key + ".npy"), os.path.join(cache_dir, key + ".json")
         if os.path.exists(fa) and os.path.exists(fj):
             y, times = np.load(fa), json.load(open(fj))
         else:
-            if engine == "mms":
-                model = model or MMS()
-                y, times = model.say(spoken, speed)
-            elif engine.startswith("vox"):
-                model = model or Vox()
+            speed = base_speed * E["speed"]
+            # split the line at every "..." so the pause is real silence of a chosen length
+            parts, pos = [], 0
+            for seg in spoken.split(laotext.PAUSE):
+                parts.append((pos, seg)); pos += len(seg) + 1
+            pieces, times, t = [], [(0.0, 0.0)] * len(spoken), 0.0
+            if is_vox:
+                model = model or get_vox()
                 card = load_card(engine.split(":", 1)[1], project) if ":" in engine else None
-                # the model occasionally skips or repeats words: compare with the length the (reliable) MMS
-                # duration model expects and re-generate when it is far off; keep the closest take
-                expect = sum(_char_weights(spoken)) or 1.0
-                best = None
-                for attempt in range(3):
-                    y = trim_silence(model.say(spoken, card=card, desc=cfg.get("voice_desc")))[0]
-                    ratio = len(y) / SR / expect
-                    score = abs(ratio - 0.78)
-                    if best is None or score < best[0]:
-                        best = (score, y)
-                    if 0.5 <= ratio <= 1.25:
-                        break
-                    print(f"    … ຄວາມຍາວຜິດປົກກະຕິ (x{ratio:.2f}) ສັງເຄາະໃໝ່", flush=True)
-                y = best[1]
-                if speed != 1.0:
-                    y = atempo(y, speed)
-                times = _scaled_times(spoken, len(y) / SR)
-                print(f"    ✓ {len(y) / SR:.1f} ວິ  {text[:40]}", flush=True)
-            elif engine.startswith("edge"):
-                v = engine.split(":", 1)[1] if ":" in engine else "female"
-                y, times = edge_say(spoken, EDGE_VOICES.get(v, v), speed)
-            else:
-                raise ValueError("voice engine ບໍ່ຮູ້ຈັກ: " + engine)
-            y, off = trim_silence(y)
-            times = [(max(0.0, a - off), max(0.0, b - off)) for a, b in times]
-            pk = float(np.abs(y).max()) or 1.0
-            y = (y / pk * 0.89).astype(np.float32)
+            for k, (off, seg) in enumerate(parts):
+                if not seg.strip():
+                    continue
+                if is_vox:
+                    y = _vox_take(model, seg, card, E["style"], cfg.get("voice_desc"),
+                                  sum(_char_weights(seg)) or 1.0)
+                    y = shape(y, speed, E["pitch"])
+                    tt = _scaled_times(seg, len(y) / SR)
+                elif engine == "mms":
+                    model = model or MMS()
+                    y, tt = model.say(seg, speed)
+                    y, o = trim_silence(y)
+                    tt = [(max(0.0, a - o), max(0.0, b - o)) for a, b in tt]
+                    if abs(E["pitch"]) > 0.05:
+                        y = shape(y, 1.0, E["pitch"])
+                elif engine.startswith("edge"):
+                    v = engine.split(":", 1)[1] if ":" in engine else "female"
+                    y, tt = edge_say(seg, EDGE_VOICES.get(v, v), speed)
+                    y, o = trim_silence(y)
+                    tt = [(max(0.0, a - o), max(0.0, b - o)) for a, b in tt]
+                else:
+                    raise ValueError("voice engine ບໍ່ຮູ້ຈັກ: " + engine)
+                if pieces:                                  # the pause before this segment
+                    n = int(E["pause"] * SR)
+                    pieces.append(np.zeros(n, np.float32)); t += n / SR
+                    if off - 1 < len(times):
+                        times[off - 1] = (t - n / SR, t)
+                for i, (a, b) in enumerate(tt):
+                    if off + i < len(times):
+                        times[off + i] = (t + a, t + b)
+                pieces.append(y); t += len(y) / SR
+            y = level(np.concatenate(pieces) if pieces else np.zeros(int(0.2 * SR), np.float32), E["gain"])
+            last = 0.0
+            for i in range(len(times)):                     # characters with no sound keep the running time
+                if times[i] == (0.0, 0.0) and i > 0:
+                    times[i] = (last, last)
+                last = times[i][1]
+            if is_vox:
+                print(f"    ✓ {len(y) / SR:4.1f} ວິ  [{emo}] {text[:44]}", flush=True)
             np.save(fa, y); json.dump(times, open(fj, "w"))
         dur = len(y) / SR
         tk = []
-        for t, (a, b) in zip(toks, spans):
-            if a >= b or not any(c.isalnum() or laotext.is_lao(c) for c in t):
+        for t_, (a, b) in zip(toks, spans):
+            if a >= b or not any(c.isalnum() or laotext.is_lao(c) for c in t_):
                 continue
             ta, tb = float(times[a][0]), float(times[b - 1][1])
-            tk.append({"t": t, "a": round(min(ta, dur), 3), "b": round(min(max(tb, ta + 0.04), dur), 3)})
-        out.append({"audio": y, "dur": dur, "tokens": tk, "tokens_all": toks, "spoken": spoken, "missing": missing})
+            tk.append({"t": t_, "a": round(min(ta, dur), 3), "b": round(min(max(tb, ta + 0.04), dur), 3)})
+        out.append({"audio": y, "dur": dur, "gap": E["gap"], "emo": emo, "tokens": tk, "tokens_all": toks,
+                    "spoken": spoken, "missing": missing})
     return out
 
 

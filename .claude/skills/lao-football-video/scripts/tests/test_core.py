@@ -58,14 +58,30 @@ class Script(unittest.TestCase):
         self.assertEqual(len(probs), 2)
 
 
-    def test_bilingual_voice_reads_english_as_english(self):
+    def test_names_use_lao_readings_unless_english_native(self):
         doc = self._doc("[img: x] Ederson ຍິງ 2 ປະຕູ!\n", voice="vox:any")
-        self.assertEqual(script.check(doc)[0], [])                  # no Lao reading needed
+        self.assertEqual(len(script.check(doc)[0]), 1)              # default: a Lao reading is required
+        doc = self._doc("[img: x] Ederson ຍິງ 2 ປະຕູ!\n", voice="vox:any\nenglish: native")
+        self.assertEqual(script.check(doc)[0], [])
         spoken = laotext.speech_plan("Neuer ກັບ Ederson ຍິງ 2 ປະຕູ!", {"Neuer": "ນອຍເອີ"}, english=True)[1]
         self.assertIn("Ederson", spoken)
-        self.assertIn("Neuer", spoken)                              # Lao `say:` readings are not used
-        self.assertIn("ສອງ", spoken)                                # numbers are still Lao words
+        self.assertIn("ສອງ", spoken)                                # numbers are always Lao words
+
+    def test_emotions_and_pauses(self):
+        from laostudio import voice
+        doc = self._doc("[img: x | emo: suspense] ເວລາເຫຼືອບໍ່ຫຼາຍ... ແຕ່ຢູ່ໆ ກໍປ່ຽນໄປ!\n[img: x | emo: nope] ຂໍ້ຄວາມ\n")
+        probs = script.check(doc)[0]
+        self.assertEqual(len(probs), 1)                             # unknown emotion is reported
+        self.assertIn("emo", probs[0])
+        spoken = laotext.speech_plan("ເວລາເຫຼືອບໍ່ຫຼາຍ... ແຕ່ຢູ່ໆ ກໍປ່ຽນໄປ!", punct=True)[1]
+        self.assertEqual(spoken.count(laotext.PAUSE), 1)            # "..." becomes a real pause
+        self.assertIn("ຢູ່ຢູ່", spoken)
         self.assertIn("!", spoken)
+        self.assertLess(voice.EMO["suspense"]["speed"], voice.EMO["climax"]["speed"])
+        self.assertLess(voice.EMO["suspense"]["gain"], voice.EMO["climax"]["gain"])
+        self.assertGreater(voice.EMO["suspense"]["pause"], voice.EMO["climax"]["pause"])
+        self.assertEqual(voice.emotion(None)[0], "story")
+        self.assertEqual(voice.emotion("excited")[0], "climax")
 
 
 class Gfx(unittest.TestCase):

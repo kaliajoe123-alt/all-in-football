@@ -10,11 +10,11 @@ import yaml
 
 from . import laotext
 
-DEFAULTS = {"aspect": "16:9", "voice": "vox:chaeng", "speed": 1.0, "music": "tension", "fps": 30, "captions": "key",
+DEFAULTS = {"aspect": "16:9", "voice": "vox:mun", "speed": 1.0, "music": "tension", "fps": 30, "captions": "key",
             "show": "", "handle": "", "narrator": "", "say": {}, "gap": 0.26, "chapter_cards": True,
             "max_shot": 4.4, "cta": "ກົດຕິດຕາມ ແລ້ວຄອມເມັ້ນບອກແດ່!", "brand": "allin"}
 FLAGS = {"full", "card", "slow", "flash", "nocap"}
-KEYS = {"img", "clip", "video", "label", "stat", "quote", "text", "sfx", "tr", "src", "kb"}
+KEYS = {"img", "clip", "video", "label", "stat", "quote", "text", "sfx", "tr", "src", "kb", "emo"}
 
 
 class ScriptError(Exception):
@@ -78,8 +78,13 @@ def check(doc):
         for l in c["lines"]:
             total += 1
             v = str(doc["meta"].get("voice", ""))
-            english = v.startswith("vox") and str(doc["meta"].get("english", "native")) != "lao"
+            english = v.startswith("vox") and str(doc["meta"].get("english", "lao")) == "native"
             miss = laotext.speech_plan(l["text"], say, english)[3]
+            try:
+                from .voice import emotion
+                emotion(l["d"].get("emo"))
+            except ValueError as e:
+                probs.append(f"ແຖວ {l['no']}: {e}")
             if miss and not v.startswith("file"):
                 probs.append(f"ແຖວ {l['no']}: ຕ້ອງເພີ່ມຄຳອ່ານລາວໃນ `say:` ສຳລັບ {', '.join(sorted(set(miss)))}")
             if not any(k in l["d"] for k in ("img", "clip", "video", "text", "quote")):
@@ -144,6 +149,7 @@ def build_timeline(doc, sents):
                     media = [dict(last_media, n=auto_n[last_media["q"]], auto=True)]
                 else:
                     media = [None]
+            gap = float(s.get("gap", meta["gap"]))             # the emotion decides how long we breathe after it
             span = dur + (0 if fixed else gap)
             n = 1 if media == [None] else max(len(media), int(math.ceil(span / max_shot)))
             while len(media) < n:                        # long sentence: more pictures of the same subject

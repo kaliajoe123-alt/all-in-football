@@ -46,10 +46,13 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     cache = os.path.join(project, ".cache")
     out_dir = os.path.join(project, "out")
     os.makedirs(cache, exist_ok=True); os.makedirs(out_dir, exist_ok=True)
-    lines = [l["text"] for c in doc["chapters"] for l in c["lines"]]
+    all_lines = [l for c in doc["chapters"] for l in c["lines"]]
+    lines = [l["text"] for l in all_lines]
+    # emotion of every line: `emo:` in the script, else the opening line is the hook and the rest is storytelling
+    emos = [l["d"].get("emo") or ("hook" if i == 0 else "story") for i, l in enumerate(all_lines)]
 
     # 1 ── voice ------------------------------------------------------------------------------
-    eng = str(meta.get("voice", "vox:chaeng"))
+    eng = str(meta.get("voice", "vox:mun"))
     removed = 0.0
     if eng.startswith("file:"):
         log(f"[1/6] ສຽງພາກ: ໃຊ້ໄຟລ໌ອັດສຽງ {eng[5:]}")
@@ -62,7 +65,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
                 raise script.ScriptError("ສຽງ vox ຍັງບໍ່ໄດ້ຕິດຕັ້ງ — ແລ່ນ: bash .claude/skills/lao-football-video/"
                                          "scripts/setup.sh --vox  (ຫຼື ໃຊ້ voice: mms ສຳລັບຮ່າງ)")
         log(f"[1/6] ສຽງພາກ: ສັງເຄາະ {len(lines)} ປະໂຫຍກ ດ້ວຍ {eng}")
-        sents, rec = voice.synth_sentences(lines, meta, os.path.join(cache, "voice"), project), None
+        sents, rec = voice.synth_sentences(lines, meta, os.path.join(cache, "voice"), project, emos), None
     tl = script.build_timeline(doc, sents)
     meta["_hook_end"] = float(min(4.0, max(2.6, tl["sentences"][0]["end"])))
 
@@ -258,18 +261,21 @@ title: ຫົວຂໍ້ທີ່ດຶງດູດ ມີ *ຄຳສຳຄັ�
 show: ຝອຍນອກເກມ
 handle: "@ALLINFootball"
 aspect: "16:9"          # 16:9 (YouTube/Facebook) ຫຼື 9:16 (TikTok/Reels)
-voice: "vox:chaeng"     # vox:chaeng|khao|vai|num|sai|mouan|sao | file:voice.m4a | mms (ຮ່າງໄວ)
+voice: "vox:mun"        # vox:mun|ai|saeo|euay|sing | file:voice.m4a | mms (ຮ່າງໄວ)
+say:                    # ຄຳອ່ານລາວຂອງຊື່ໂຕລາຕິນ
+  Pep Guardiola: ເປບ ກວາດິໂອລາ
 music: tension          # epic | tension | sad | fun | none
 caption: |
   ຂໍ້ຄວາມໂພສ ...
 hashtags: "#ເຕະບານ #football #ALLIN"
 ---
 # ເປີດເລື່ອງ
-[img: football stadium night | full] ປະໂຫຍກເປີດທີ່ເຮັດໃຫ້ຄົນຢຸດເລື່ອນ!
-[img: Pep Guardiola | label: Pep Guardiola] ປະໂຫຍກທີສອງ ເລົ່າວ່າໃຜ ແລະ ເກີດຫຍັງຂຶ້ນ.
+[emo: hook | img: football stadium night | full] ເຈົ້າເຊື່ອບໍ່... ປະໂຫຍກເປີດທີ່ເຮັດໃຫ້ຄົນຢຸດເລື່ອນ!
+[emo: story | img: Pep Guardiola | label: Pep Guardiola] ປະໂຫຍກທີສອງ ເລົ່າວ່າໃຜ ແລະ ເກີດຫຍັງຂຶ້ນ ແບບລົມກັບໝູ່.
 
 # ຫົວຂໍ້ບົດທີ 1
-[img: goalkeeper save | stat: 52.6% = ຈ່າຍບານສຳເລັດ | src: fbref.com] ຕົວເລກສຳຄັນ ພ້ອມແຫຼ່ງຂໍ້ມູນ.
+[emo: suspense | img: goalkeeper save] ແຕ່ມີຢູ່ຢ່າງໜຶ່ງ... ທີ່ບໍ່ມີໃຜຄາດຄິດ.
+[emo: climax | img: goalkeeper save | stat: 52.6% = ຈ່າຍບານສຳເລັດ | src: fbref.com] ຕົວເລກສຳຄັນ ພ້ອມແຫຼ່ງຂໍ້ມູນ!
 """
 
 
