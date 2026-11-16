@@ -20,7 +20,7 @@ Joe ຂຽນພາສາລາວ — **ຕອບເປັນພາສາລາ
 ຂັ້ນ ①② ແມ່ນ Claude ເຮັດ; ຂັ້ນ ③–⑧ ແມ່ນໂຄດ `scripts/laostudio` (Python + ffmpeg) ເຮັດທັງໝົດ.
 
 ```bash
-bash .claude/skills/lao-football-video/scripts/setup.sh --vox    # ເທື່ອທຳອິດຂອງແຕ່ລະ session (5–10 ນາທີ: ສຽງພາກ VoxCPM2)
+bash .claude/skills/lao-football-video/scripts/setup.sh --align  # ເທື່ອທຳອິດຂອງແຕ່ລະ session (3–6 ນາທີ: ຈັບເວລາຄຳ ໃຫ້ຮູບຕົງສຽງ Gemini)
 S=video-studio/studio                                            # ຕົວເອີ້ນໃຊ້
 $S new   video-studio/projects/<NNN_ຊື່>  --title "ຫົວຂໍ້ *ຄຳສຳຄັນ*"
 $S check video-studio/projects/<NNN_ຊື່>                         # ກວດບົດ
@@ -70,6 +70,8 @@ $S run   video-studio/projects/<NNN_ຊື່> [--aspect 9:16 | --both] # ວີ
    ສ້າງດ້ວຍ `python3 .claude/skills/pak-kuan/scripts/tts.py partN.txt partN_Puck.mp3`, ແລ້ວຕໍ່ກັນດ້ວຍຊ່ອງງຽບ 0.45 ວິ (ffmpeg concat) ໄວ້ໃນໂຟນເດີໂປຣເຈັກ.
 4. ກວດສຽງ: ຖອດສຽງເປັນທ່ອນນ້ອຍ (~5 ວິ) ເພື່ອຢືນຢັນວ່າຕົວເລກ/ຊື່ສຳຄັນບໍ່ຖືກຂ້າມ; ບອກ Joe ຖ້າທ່ອນໃດໃຊ້ໂມເດລສຳຮອງ (ໂຄຕ້າໝົດ).
 5. `voice: "file:<ໄຟລ໌>.mp3"`, `captions: key`, ແລ້ວ `plan` → ກວດຮູບ → `run`.
+6. **ຮູບຕົງສຽງ:** ລະບົບຈັບເວລາຄຳຕໍ່ຄຳ (Lao ASR, `align: ctc` ຄ່າເລີ່ມຕົ້ນ) ເພື່ອປ່ຽນຊັອດຕົງຄຳທຳອິດຂອງແຕ່ລະແຖວ. ຫ້າມໃຊ້ `align: pauses` ກັບສຽງ Gemini:
+   Gemini ບໍ່ຢຸດຕົງທ້າຍປະໂຫຍກ ຮູບຈະເລື່ອນໄປເຖິງ 10 ວິ (ບັນຫາຂອງຄລິບ 002 ສະບັບທຳອິດ). ກວດໄດ້ດ້ວຍ ການຖອດສຽງ 2 ວິ ຕອນເລີ່ມຂອງແຖວສຸ່ມ.
 
 ## ③–⑤ ກວດ, ວາງແຜນ, ກວດຮູບ
 - `check` ຕ້ອງ "ຜ່ານ ✓". ຈາກນັ້ນ `plan` → ເປີດເບິ່ງ `out/<ຊື່>_footage.jpg` (ຮູບທຸກຊັອດມີເລກ) ແລະ `_plan.json` (ຊື່ໄຟລ໌ທີ່ເລືອກ).

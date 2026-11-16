@@ -17,6 +17,13 @@ for f in model.onnx tokens.txt; do
       && mv "$dir/$f.part" "$dir/$f" || echo "ໂຫຼດໂມເດລສຽງບໍ່ໄດ້ ($f) — ຈະລອງໃໝ່ຕອນ render"
   fi
 done
+if [ "$1" = "--align" ] || [ "$1" = "--vox" ]; then
+  # ຈັບເວລາຄຳຕໍ່ຄຳ (ຮູບຕົງສຽງ ສຳລັບ voice: file — Gemini / ສຽງອັດ): PyTorch + transformers + MMS Lao (~4 GB)
+  python3 -c "import torch, transformers" 2>/dev/null || \
+    python3 -m pip install -q --disable-pip-version-check --root-user-action=ignore torch transformers
+  HF_HUB_DISABLE_XET=1 python3 -c "from huggingface_hub import snapshot_download; snapshot_download('facebook/mms-1b-all', allow_patterns=['*.json','*.txt','model.safetensors','adapter.lao.safetensors'])" \
+    >/dev/null 2>&1 || echo "ໂຫຼດ MMS ບໍ່ໄດ້ — ຈະລອງໃໝ່ຕອນ render"
+fi
 if [ "$1" = "--vox" ]; then
   # ສຽງພາກຄຸນນະພາບສູງ VoxCPM2 (ໃຫຍ່: PyTorch + ໂມເດລ ~5 GB, ໃຊ້ເວລາ 5-10 ນາທີ)
   python3 -c "import voxcpm" 2>/dev/null || {
