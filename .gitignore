@@ -46,3 +46,6 @@ video-studio/projects/*/.cache/
 video-studio/projects/*/out/
 __pycache__/
 *.pyc
+
+# packaged skill zips (built from .claude/skills)
+/skill-zips/
