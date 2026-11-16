@@ -84,6 +84,19 @@ class Script(unittest.TestCase):
         self.assertEqual(voice.emotion("excited")[0], "climax")
 
 
+class CtcAlign(unittest.TestCase):
+    def test_viterbi_finds_label_frames(self):
+        import numpy as np
+        from laostudio import ctcalign
+        # 3 labels (ids 1,2,1) clearly emitted at frames 2, 5 and 8 of 10; blank = 0
+        lp = np.full((10, 3), -9.0); lp[:, 0] = -0.1
+        for t, k in ((2, 1), (5, 2), (8, 1)):
+            lp[t] = -9.0; lp[t, k] = -0.1
+        first, last = ctcalign.viterbi(lp, np.array([1, 2, 1]), 0)
+        self.assertEqual(list(first), [2, 5, 8])
+        self.assertEqual(list(last), [2, 5, 8])
+
+
 class Gfx(unittest.TestCase):
     def test_lao_text_renders_and_wraps(self):
         self.assertEqual(gfx.RAQM.name, "RAQM", "Pillow has no raqm: Lao marks would misplace")

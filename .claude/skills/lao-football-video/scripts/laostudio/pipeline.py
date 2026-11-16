@@ -56,7 +56,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     removed = 0.0
     if eng.startswith("file:"):
         log(f"[1/6] ສຽງພາກ: ໃຊ້ໄຟລ໌ອັດສຽງ {eng[5:]}")
-        sents, rec, removed = voice.align_recording(os.path.join(project, eng[5:]), lines, meta)
+        sents, rec, removed = voice.align_recording(os.path.join(project, eng[5:]), lines, meta, cache, log)
     else:
         if eng.startswith("vox"):
             try:

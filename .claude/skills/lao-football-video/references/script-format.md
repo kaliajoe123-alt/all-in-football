@@ -11,6 +11,7 @@ show: ຝອຍນອກເກມ              # ປ້າຍລາຍການ 
 handle: "@ALLINFootball"     # ປ້າຍໃຕ້ກາດ
 aspect: "16:9"               # ຫຼື "9:16"
 voice: "vox:mun"             # vox:mun|ai|saeo|euay|sing (+ chaeng, vai, sai, mouan, num) | file:voice.m4a | mms (ຮ່າງໄວ)
+align: ctc                   # voice: file → ctc = ຈັບເວລາຄຳຕໍ່ຄຳດ້ວຍ Lao ASR (ຄ່າເລີ່ມຕົ້ນ, ຮູບຕົງສຽງ) | pauses = ເດົາຈາກຊ່ວງງຽບ (ໄວ ແຕ່ເລື່ອນໄດ້)
 english: lao                 # lao = ຊື່ໂຕລາຕິນອ່ານຕາມ say: ແບບລາວ (ຄ່າເລີ່ມຕົ້ນ) | native = ອ່ານເປັນອັງກິດ (vox)
 speed: 1.0                   # ຄວາມໄວສຽງ AI (0.9 ຊ້າ – 1.15 ໄວ)
 music: tension               # epic ເດືອດ | tension ລຸ້ນ | sad ເສົ້າ | fun ມ່ວນ | none | ທີ່ຢູ່ໄຟລ໌

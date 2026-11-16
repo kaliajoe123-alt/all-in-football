@@ -632,8 +632,34 @@ def tighten(y, spans, max_gap=0.35, pad=0.1):
     return out, total - len(out) / SR
 
 
-def align_recording(path, lines, cfg):
-    """Narrator recording -> same structure as synth_sentences, plus absolute 'start' per sentence."""
+def _ctc_lines(y, plans, cache, log=print):
+    """Forced alignment (ctcalign) -> per line (start, end, {char index: (a, b)}) or None if unavailable."""
+    from . import ctcalign
+    mode = "ctc"
+    if not ctcalign.available():
+        return None
+    key = hashlib.sha1(y[::7].tobytes() + "\n".join(p[1] for p in plans).encode()).hexdigest()[:16]
+    f = os.path.join(cache, f"align_{key}.json") if cache else None
+    if f and os.path.exists(f):
+        raw = json.load(open(f))
+        return [{int(k): tuple(v) for k, v in d.items()} for d in raw]
+    log(f"      ຈັບເວລາຄຳຕໍ່ຄຳ ({mode}, ~2–3 ນາທີ)")
+    try:
+        res = ctcalign.align(y, SR, [p[1] for p in plans])
+    except Exception as e:                                   # model missing / offline -> pause-based fallback
+        log(f"      ຈັບເວລາຄຳຕໍ່ຄຳບໍ່ໄດ້ ({e}); ໃຊ້ຊ່ວງງຽບແທນ")
+        return None
+    if f:
+        os.makedirs(cache, exist_ok=True)
+        json.dump([{str(k): v for k, v in d.items()} for d in res], open(f, "w"))
+    return res
+
+
+def align_recording(path, lines, cfg, cache=None, log=print):
+    """Narrator recording -> same structure as synth_sentences, plus absolute 'start' per sentence.
+
+    Line and word times come from forced alignment of the script to the recording (`align: ctc`, default
+    when torch/transformers are installed); `align: pauses` (or no model) guesses breaks from pauses."""
     say = cfg.get("say", {})
     y = read_audio(path)
     y = y / (np.abs(y).max() + 1e-9) * 0.89
@@ -643,6 +669,25 @@ def align_recording(path, lines, cfg):
     spans = speech_spans(y, min_sil=0.15)
     total = len(y) / SR
     plans = [laotext.speech_plan(t, say) for t in lines]
+    ct = _ctc_lines(y, plans, cache, log) if str(cfg.get("align", "ctc")) == "ctc" else None
+    if ct and all(ct):
+        first = [min(a for a, b in d.values()) for d in ct]
+        last = [max(b for a, b in d.values()) for d in ct]
+        starts = [max(0.0, first[0] - 0.12)]
+        for i in range(1, len(lines)):                      # cut just before the first sound of the line
+            starts.append(max(last[i - 1], first[i] - 0.12, starts[-1] + 0.3))
+        ends = starts[1:] + [min(total, last[-1] + 0.25)]
+        out = []
+        for i, (toks, spoken, sp, missing) in enumerate(plans):
+            a, d = starts[i], ct[i]
+            tk = []
+            for t, (x, z) in zip(toks, sp):
+                ts = [d[c] for c in range(x, z) if c in d]
+                if z > x and ts and any(ch.isalnum() or laotext.is_lao(ch) for ch in t):
+                    tk.append({"t": t, "a": round(max(0.0, ts[0][0] - a), 3), "b": round(max(0.0, ts[-1][1] - a), 3)})
+            out.append({"audio": None, "dur": ends[i] - a, "start": a, "tokens": tk, "tokens_all": toks,
+                        "spoken": spoken, "missing": []})
+        return out, y, removed
     weights = [max(1, sum(1 for c in p[1] if not c.isspace())) for p in plans]
     if not spans:
         spans = [[0.0, total]]
