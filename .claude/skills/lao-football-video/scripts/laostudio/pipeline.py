@@ -76,10 +76,16 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
         if sh["kind"] == "media" and sh.get("media"):
             sh["asset"] = finder.find(sh["media"])
             sh["file"] = finder.titles.get(sh["asset"]) or (os.path.basename(sh["asset"]) if sh["asset"] else None)
+            sh["year"] = finder.years.get(sh["asset"])
     srcs = sorted({c["source"] for c in finder.credits})
     meta["_credit_line"] = ("ຮູບປະກອບ: " + ", ".join(srcs) + " · ລາຍຊື່ເຈົ້າຂອງຮູບຢູ່ໃນຄຳບັນຍາຍ") if srcs else ""
     if finder.missing:
         log("  ! ຫາບໍ່ພົບ: " + "; ".join(sorted(set(finder.missing))))
+    old = sorted({f"{sh['media']['q']} ({sh['year']})" for sh in tl["shots"] if sh.get("year")
+                  and finder.recent and sh["year"] < finder.year_now - finder.recent})
+    if old:
+        log("  ! ຮູບເກົ່າ (ກວດເສື້ອ/ທີມ, ປ່ຽນຄຳຄົ້ນ ຫຼື ວາງຮູບໃໝ່ໃນ assets/): " + "; ".join(old))
+    meta["_old_footage"] = old
 
     rd = render.Renderer(tl, meta, theme, project)
     name = slugify(str(meta.get("slug") or meta["title_plain"])) + ("_9x16" if meta["aspect"] == "9:16" else "")
@@ -175,7 +181,7 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
     report = {"video": final, "cover": cover, "caption": post, "srt": srt, "credits": credits, "qa_sheet": qa,
               "clean_video": clean, "duration": round(dur, 2), "shots": len(tl["shots"]), "avg_shot": round(float(np.mean(media_shots)), 2),
               "voice": eng, "voice_removed_pauses": round(removed, 2), "music": music_name,
-              "missing_footage": sorted(set(finder.missing)), "problems": probs,
+              "missing_footage": sorted(set(finder.missing)), "old_footage": meta.get("_old_footage", []), "problems": probs,
               "placeholders": sum(1 for s in tl["shots"] if s["kind"] == "media" and not s.get("asset")),
               "render_seconds": round(time.time() - t0, 1)}
     json.dump(report, open(os.path.join(out_dir, name + "_report.json"), "w", encoding="utf-8"),
