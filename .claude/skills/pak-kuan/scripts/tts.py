@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gemini TTS -> MP3 for Lao voice-overs (ຈັນທີ / ພາກແບບກວນໆ).
+"""Gemini TTS -> MP3 for Lao voice-overs (ຈັນທີ / ພາກແບບກວນໆ / ອ້າຍເຕ້).
 
 usage: tts.py SCRIPT.txt OUT.mp3 [--voice Zephyr] [--style "..."] [--models m1,m2,...]
 
@@ -23,6 +23,11 @@ PRESETS = {
         models=["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts", "gemini-3.1-flash-tts-preview"],
         style="Witty, clear, fast-talking Lao football banter creator. Rapid continuous comedic pacing with "
               "lively quick breath beats right before punchlines, energetic fan excitement."),
+    "aite-debate": dict(
+        voice="Fenrir",
+        models=["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts", "gemini-3.1-flash-tts-preview"],
+        style="Bold, charismatic, provocative Lao football podcast debater. Fast punchy delivery with confident "
+              "quick breaths, stirring heated GOAT debates and dream-XI comparisons."),
 }
 P = PRESETS.get(SKILL, PRESETS["chanthy-fans"])
 URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
