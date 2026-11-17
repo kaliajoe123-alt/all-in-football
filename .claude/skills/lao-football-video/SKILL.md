@@ -33,7 +33,7 @@ $S run   video-studio/projects/<NNN_ຊື່> [--aspect 9:16 | --both] # ວີ
 ## ຖາມກ່ອນ (ເທື່ອດຽວ, ດ້ວຍ AskUserQuestion) — ລາຍການ ແລະ ສຽງ ຖາມທຸກຄັ້ງ; ອື່ນໆ ສະເພາະສິ່ງທີ່ຍັງບໍ່ຮູ້
 
 1. **ລາຍການໃດ? — ຖາມທຸກຄັ້ງ, ທຸກຄລິບ (Joe ສັ່ງ), ເຖິງວ່າ Joe ຈະສັ່ງ "ເຮັດເລີຍ".** ALL IN ມີ 5 ລາຍການ (ໃຊ້ AskUserQuestion: 4 ຕົວເລືອກ + "Other" ສຳລັບອັນທີ 5):
-   ເກມເດືອດ (GAME ON FIRE) · ALL IN ບານປາຍບູ້ງເກມ · ຝອຍນອກເກມ · ເລື່ອງໃນເດີ່ນຫຍ້າ (Tales from the Pitch) · ເລື່ອງເລົ່າລາວ (Lao Stories).
+   ເກມເດືອດ (GAME ON FIRE) · ALL IN ບານປາຍບູ້ງເກມ · ຝອຍນອກເກມ · ເລື່ອງຂອງເດີ່ນຫຍ້າ (Tales from the Pitch) · ເລື່ອງເລົ່າລາວ (Lao Stories).
    `show:` = ຊື່ລາຍການ → ໂລໂກ້ລາຍການຂຶ້ນມຸມຊ້າຍເທິງເອງ. ໂລໂກ້ "A" ແມ່ນໂລໂກ້ **ຊ່ອງ** ALL IN (ມຸມຂວາເທິງທຸກຄລິບ) ບໍ່ແມ່ນລາຍການ.
    ຖ້າ Joe ລະບຸລາຍການມາໃນຄຳສັ່ງແລ້ວ ກໍໃຊ້ໄດ້ເລີຍ. ຫ້າມເລືອກລາຍການເອງ. ສະກົດ **ຝອຍນອກເກມ** ສະເໝີ.
 2. **ສຽງພາກ? — ຖາມທຸກຄັ້ງ, ທຸກຄລິບ (Joe ສັ່ງ), ເຖິງວ່າ Joe ຈະເຄີຍເລືອກແລ້ວ ຫຼື ສັ່ງ "ເຮັດເລີຍ".** ຕົວເລືອກ:
@@ -114,7 +114,7 @@ $S run   video-studio/projects/<NNN_ຊື່> [--aspect 9:16 | --both] # ວີ
 | ເກມເດືອດ / GAME ON FIRE | `game_on_fire.png` |
 | ALL IN ບານປາຍບູ້ງເກມ | `allin_ban_pay_boung_game.png` |
 | ຝອຍນອກເກມ | `foy_nok_game.png` |
-| ເລື່ອງໃນເດີ່ນຫຍ້າ / Tales from the Pitch | `tales_from_the_pitch.png` |
+| ເລື່ອງຂອງເດີ່ນຫຍ້າ / Tales from the Pitch | `tales_from_the_pitch.png` |
 | ເລື່ອງເລົ່າລາວ / Lao Stories | `lao_stories.png` |
 | ໂລໂກ້ຊ່ອງ ALL IN "A" (ມຸມຂວາເທິງ, ໜ້າປົກ, ຕອນຈົບ) | `allin_a.png` (ຕັ້ງໃນ `assets/brand/allin.json`) |
 ຊື່ລາຍການ → ໄຟລ໌ ຢູ່ໃນ `logos/shows.json` (ເພີ່ມຊື່ອື່ນໄດ້). ຊື່ທີ່ບໍ່ມີໃນຕາຕະລາງ → ຂຶ້ນເປັນປ້າຍຂໍ້ຄວາມສີແດງແທນ.
