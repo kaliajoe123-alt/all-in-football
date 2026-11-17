@@ -85,6 +85,16 @@ def _get_json(url, headers=None):
     return data
 
 
+def _year(em, title):
+    """Year a Commons photo was taken: DateTimeOriginal, else a year in the file name, else upload date."""
+    for v in (re.sub(r"<[^>]+>", "", em.get("DateTimeOriginal", {}).get("value", "")), title,
+              em.get("DateTime", {}).get("value", "")):
+        m = re.search(r"(?<!\d)(19[5-9]\d|20[0-4]\d)(?!\d)", v or "")
+        if m:
+            return int(m.group(1))
+    return None
+
+
 def _thumb_url(url, width):
     """Standard-size rendition on thumb.wikimedia.org (originals on upload.wikimedia.org are throttled hard)."""
     m = re.match(r"https://upload\.wikimedia\.org/wikipedia/commons/(\w/\w\w)/([^?]+)", url or "")
@@ -99,6 +109,10 @@ def _thumb_url(url, width):
 class Finder:
     def __init__(self, project_dir, cfg, online=True):
         self.project = project_dir
+        # prefer photos taken in the last `recent_years` years (kits, squads and stadiums change); 0 = off
+        self.recent = int(cfg.get("recent_years", 2) or 0)
+        self.year_now = int(time.strftime("%Y"))
+        self.years = {}                                       # local path -> year the photo was taken
         self.online = online
         self.dirs = [os.path.join(project_dir, "assets")]
         lib = os.environ.get("LAOSTUDIO_LIBRARY", "")
@@ -136,7 +150,7 @@ class Finder:
         url = "https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode({
             "action": "query", "format": "json", "generator": "search", "gsrsearch": f"{q} {ft}",
             "gsrnamespace": 6, "gsrlimit": 30, "prop": "imageinfo", "iiprop": "url|size|mime|extmetadata", "iiurlwidth": 1920,
-            "iiextmetadatafilter": "LicenseShortName|Artist|Credit"})
+            "iiextmetadatafilter": "LicenseShortName|Artist|Credit|DateTimeOriginal|DateTime"})
         res = []
         try:
             pages = _get_json(url).get("query", {}).get("pages", {})
@@ -161,18 +175,38 @@ class Finder:
             thumb = ii.get("thumburl", "")
             if kind != "video":                               # scaled renditions: small + far less rate-limited
                 url_ = _thumb_url(url_, w) or thumb or url_
-            res.append({"url": url_, "title": title.replace("File:", ""), "w": w, "h": h,
+            res.append({"url": url_, "title": title.replace("File:", ""), "w": w, "h": h, "year": _year(em, title),
                         "license": em.get("LicenseShortName", {}).get("value", "?"),
                         "author": re.sub(r"\s+", " ", artist)[:80] or "?", "page": ii.get("descriptionurl", ""),
                         "source": "Wikimedia Commons"})
+        res = self._rank(res, q)
+        self._search[key] = res
+        return res
+
+    def _fresh(self, r):
+        return bool(self.recent) and (r.get("year") or 0) >= self.year_now - self.recent
+
+    def _rank(self, res, q):
         words = [w for w in _norm(q).split() if len(w) > 2]
         def score(r):
             name = _norm(r["title"])
             hit = sum(1 for w in words if w in name)
-            return (-(hit == len(words)), -hit, -(r["w"] >= r["h"]))        # stable: keeps search order inside ties
-        res.sort(key=score)
-        self._search[key] = res
-        return res
+            # right subject first, then recent photos, then best word match; newest first inside a tie
+            return (-(hit == len(words)), -self._fresh(r), -hit, -(r["w"] >= r["h"]),
+                    -(r.get("year") or 0) if self.recent else 0)
+        return sorted(res, key=score)
+
+    def _commons_recent(self, q, kind):
+        """Commons results, plus a search with this/last year added when the top hits are old photos."""
+        res = self._commons(q, kind)
+        if not self.recent or kind == "video" or any(self._fresh(r) for r in res[:3]):
+            return res
+        seen, extra = {r["url"] for r in res}, []
+        for y in (self.year_now, self.year_now - 1):
+            for r in self._commons(f"{q} {y}", kind):
+                if r["url"] not in seen:
+                    seen.add(r["url"]); extra.append(r)
+        return self._rank(res + extra, q)
 
     # ---------------------------------------------------------------- Pexels
     def _pexels(self, q, kind):
@@ -226,7 +260,7 @@ class Finder:
         if kind == "clip" or not self.online:
             self.missing.append(q)
             return None
-        results = self._commons(q, kind) + self._pexels(q, kind)
+        results = self._commons_recent(q, kind) + self._pexels(q, kind)
         if kind == "video" and not results:                    # no stock video -> fall back to a photo
             kind = "img"; results = self._commons(q, kind) + self._pexels(q, kind)
         if not results and len(q.split()) > 2:                 # too specific: drop the last word and retry
@@ -249,6 +283,8 @@ class Finder:
                 continue
             self.used.add(item["url"])
             self.titles[path] = item["title"]
+            if item.get("year"):
+                self.years[path] = item["year"]
             if not any(c["title"] == item["title"] for c in self.credits):
                 self.credits.append({k: item[k] for k in ("title", "author", "license", "page", "source")})
             return path
