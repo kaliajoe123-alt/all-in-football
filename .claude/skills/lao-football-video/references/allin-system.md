@@ -8,7 +8,7 @@
 | ເກມເດືອດ | GAME ON FIRE | `game_on_fire.png` |
 | ALL IN ບານປາຍບູ້ງເກມ | ບານປາຍຫຼັງເກມ | `allin_ban_pay_boung_game.png` |
 | ຝອຍນອກເກມ | — | `foy_nok_game.png` |
-| ເລື່ອງໃນເດີ່ນຫຍ້າ | ເລື່ອງຂອງເດີ່ນຫຍ້າ, Tales from the Pitch | `tales_from_the_pitch.png` |
+| ເລື່ອງຂອງເດີ່ນຫຍ້າ | Tales from the Pitch, ເລື່ອງໃນເດີ່ນຫຍ້າ (ຊື່ຜິດທີ່ເຄີຍໃຊ້) | `tales_from_the_pitch.png` |
 | ເລື່ອງເລົ່າລາວ | Lao Stories | `lao_stories.png` |
 
 ໂລໂກ້ "A" (`allin_a.png`) = ໂລໂກ້ **ຊ່ອງ** ALL IN, ບໍ່ແມ່ນລາຍການ.
