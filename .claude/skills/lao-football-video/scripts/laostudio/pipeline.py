@@ -71,7 +71,8 @@ def run(project, aspect=None, workers=None, offline=False, force=False, plan_onl
 
     # 2 ── footage ----------------------------------------------------------------------------
     log(f"[2/6] ຫາ footage ສຳລັບ {sum(1 for s in tl['shots'] if s['kind'] == 'media')} ຊັອດ")
-    finder = footage.Finder(project, theme, online=not offline)
+    fcfg = dict(theme, recent_years=meta.get("recent_years", theme.get("recent_years", 2)))  # script can override
+    finder = footage.Finder(project, fcfg, online=not offline)
     for sh in tl["shots"]:
         if sh["kind"] == "media" and sh.get("media"):
             sh["asset"] = finder.find(sh["media"])
