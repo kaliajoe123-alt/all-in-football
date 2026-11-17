@@ -191,8 +191,8 @@ class Finder:
         def score(r):
             name = _norm(r["title"])
             hit = sum(1 for w in words if w in name)
-            # right subject first, then recent photos, then best word match; newest first inside a tie
-            return (-(hit == len(words)), -self._fresh(r), -hit, -(r["w"] >= r["h"]),
+            # best word match first (right subject); among equally good matches, recent photos first
+            return (-(hit == len(words)), -hit, -self._fresh(r), -(r["w"] >= r["h"]),
                     -(r.get("year") or 0) if self.recent else 0)
         return sorted(res, key=score)
 
@@ -202,9 +202,10 @@ class Finder:
         if not self.recent or kind == "video" or any(self._fresh(r) for r in res[:3]):
             return res
         seen, extra = {r["url"] for r in res}, []
+        words = [w for w in _norm(q).split() if len(w) > 2]
         for y in (self.year_now, self.year_now - 1):
-            for r in self._commons(f"{q} {y}", kind):
-                if r["url"] not in seen:
+            for r in self._commons(f"{q} {y}", kind):            # only extra hits that name every query word
+                if r["url"] not in seen and self._fresh(r) and all(w in _norm(r["title"]) for w in words):
                     seen.add(r["url"]); extra.append(r)
         return self._rank(res + extra, q)
 
