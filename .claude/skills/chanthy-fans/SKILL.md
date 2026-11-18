@@ -8,6 +8,7 @@ description: "ຈັນທີ — ສຽງແຟນບານເຊຍສົດ 
 Joe ຂຽນພາສາລາວ — **ຕອບເປັນພາສາລາວ, ສັ້ນ**. ໃຫ້ພຽງ "ເກມ" ແລະ ຄວາມຍາວ ກໍ່ພໍ.
 
 ## ສຽງ (ຜ່ານການຮັບຮອງຈາກ Joe ແລ້ວ)
+- ສຽງນີ້ = **ສຽງ 3 (ຜູ້ຍິງ)** ໃນ skill `lao-voices`. ຖ້າ Joe ບໍ່ໄດ້ລະບຸສຽງນີ້ຊັດໆ → ໃຊ້ `lao-voices` ຖາມເລືອກ 5 ສຽງກ່ອນ.
 - **Voice**: `Zephyr` · **Model**: `gemini-3.8-flash-tts` (ໂມເດລທີ່ສ້າງຕົວຢ່າງທີ່ຜ່ານ; ໝົດໂຄຕ້າ → `gemini-3.8-flash-lite-tts` → `gemini-3.1-flash-tts-preview`, ສະຄຣິບປ່ຽນໃຫ້ເອງ ແລ້ວບອກ Joe ວ່າໃຊ້ໂມເດລໃດ)
 - **Style**: `Warm, spirited, expressive young Lao female football fan-zone host. Lively post-match conversational pace with genuine laughs, excited sighs, and relatable fan reactions.`
 - ຕົວຢ່າງທີ່ Joe ໃຫ້ຜ່ານ: `references/example-mu-liverpool.md` (ແມນຢູ 3–2 ລີເວີພູ, 28 ວິ) — ມາດຕະຖານນ້ຳສຽງ ແລະ ຈັງຫວະ.

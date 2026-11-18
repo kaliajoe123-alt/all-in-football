@@ -1,0 +1,20 @@
+{
+  "_note": "ຄັງສຽງທີ່ Joe ຈັດອັນດັບເອງ (18 ພະຈິກ 2026). ຖາມເລືອກສະເພາະ 5 ສຽງນີ້. model = ໂມເດລທີ່ສ້າງຕົວຢ່າງທີ່ Joe ຟັງ.",
+  "voices": [
+    {"rank": 1, "nick": "ດຸດັນ", "character": "ໂຄ້ດບອລ — ວິເຄາະແທັກຕິກ", "voice": "Charon",
+     "model": "gemini-3.8-flash-lite-tts", "sample": "references/1_ດຸດັນ.md", "use": "ວິເຄາະເກມ, ແທັກຕິກ, ຈຸດປ່ຽນ, ຂ່າວຈິງຈັງ",
+     "style": "Ultra-clear, energized Lao football tactician. Fast continuous analytical pacing with crisp micro-breaths on tactical transitions, keeping match breakdowns thrilling and sharp."},
+    {"rank": 2, "nick": "ກວນດີ", "character": "ອ້າຍບ່າວຂ້າງບ້ານ — ພາກສາຍຮາ", "voice": "Puck",
+     "model": "gemini-3.8-flash-lite-tts", "sample": "references/2_ກວນດີ.md", "use": "ຄລິບຕະຫຼົກ, ແຊວບານ, ປຽບທຽບຊີວິດຄົນລາວ",
+     "style": "Witty, clear, fast-talking Lao football banter creator. Rapid continuous comedic pacing with lively quick breath beats right before punchlines, energetic fan excitement."},
+    {"rank": 3, "nick": "ຜູ້ຍິງ", "character": "ຈັນທີ — ແຟນບານເຊຍສົດ", "voice": "Zephyr",
+     "model": "gemini-3.8-flash-tts", "sample": "references/3_ຜູ້ຍິງ.md", "use": "ຣີແອັກຫຼັງເກມ, ອ່ານຄອມເມັ້ນ, ຊວນແຟນໃຫ້ຄະແນນ",
+     "style": "Warm, spirited, expressive young Lao female football fan-zone host. Lively post-match conversational pace with genuine laughs, excited sighs, and relatable fan reactions."},
+    {"rank": 4, "nick": "ກວນ", "character": "ຟ້າໃສ — ປຸກກະແສກ່ອນເກມ", "voice": "Puck",
+     "model": "gemini-3.8-flash-lite-tts", "sample": "references/4_ກວນ.md", "use": "ກ່ອນເກມ, ລາຍຊື່ຕົວຈິງ, ນັບຖອຍຫຼັງ, ຊວນທາຍຜົນ",
+     "style": "Crisp, thrilled young Lao female football presenter. Fast continuous pre-match hype with snappy quick breath catches between starting-XI surprises and derby stakes."},
+    {"rank": 5, "nick": "ກວນຕີນ", "character": "ມັງກອນທະລຸຕາຂ່າຍ — ລະເບີດສຽງຍິງປະຕູ", "voice": "Fenrir",
+     "model": "gemini-3.8-flash-lite-tts", "sample": "references/5_ກວນຕີນ.md", "use": "ຄລິບປະຕູ, ຍິງໄກ, ປະຕູຊະນະນາທີສຸດທ້າຍ",
+     "style": "Explosive, chest-pounding Lao male goal commentator. Builds fierce rising tension through the buildup and detonates with thrilling, adrenaline-soaked triumph on thunderbolt goals."}
+  ]
+}

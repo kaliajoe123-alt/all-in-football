@@ -8,6 +8,7 @@ description: "ພາກແບບກວນໆ — ສ້າງສຽງພາກ�
 Joe ຂຽນພາສາລາວ — **ຕອບເປັນພາສາລາວ, ສັ້ນ**. ໃຫ້ພຽງ "ເກມ / ເລື່ອງ" ແລະ ຄວາມຍາວ ກໍ່ພໍ.
 
 ## ສຽງ (ຜ່ານການຮັບຮອງຈາກ Joe ແລ້ວ)
+- ສຽງນີ້ = **ສຽງ 2 (ກວນດີ)** ໃນ skill `lao-voices`. ຖ້າ Joe ບໍ່ໄດ້ລະບຸສຽງນີ້ຊັດໆ → ໃຊ້ `lao-voices` ຖາມເລືອກ 5 ສຽງກ່ອນ.
 - **Voice**: `Puck` · **Model**: `gemini-3.8-flash-lite-tts` (ຖ້າໝົດໂຄຕ້າ → `gemini-3.8-flash-tts` → `gemini-3.1-flash-tts-preview`, ສະຄຣິບປ່ຽນໃຫ້ເອງ)
 - **Style**: `Witty, clear, fast-talking Lao football banter creator. Rapid continuous comedic pacing with lively quick breath beats right before punchlines, energetic fan excitement.`
 - ຕົວຢ່າງທີ່ Joe ໃຫ້ຜ່ານ: `references/example-mu-liverpool.md` (ແມນຢູ 3–2 ລີເວີພູ, 57 ວິ) — ໃຊ້ເປັນມາດຕະຖານນ້ຳສຽງ ແລະ ຈັງຫວະ.
