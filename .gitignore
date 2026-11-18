@@ -49,3 +49,4 @@ __pycache__/
 
 # packaged skill zips (built from .claude/skills)
 /skill-zips/
+video-studio/projects/*/voice.wav
