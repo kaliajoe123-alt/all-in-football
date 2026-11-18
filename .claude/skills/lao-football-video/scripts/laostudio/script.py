@@ -14,7 +14,7 @@ DEFAULTS = {"aspect": "16:9", "voice": "mms", "speed": 1.0, "music": "tension", 
             "show": "", "handle": "", "narrator": "", "say": {}, "gap": 0.26, "chapter_cards": True,
             "max_shot": 4.4, "cta": "ກົດຕິດຕາມ ແລ້ວຄອມເມັ້ນບອກແດ່!", "brand": "allin"}
 FLAGS = {"full", "card", "slow", "flash", "nocap"}
-KEYS = {"img", "clip", "video", "label", "stat", "quote", "text", "sfx", "tr", "src", "kb"}
+KEYS = {"img", "clip", "video", "label", "stat", "quote", "text", "sfx", "tr", "src", "kb", "spk"}  # spk = ຄົນເວົ້າ (ສຽງ 2 ຄົນ)
 
 
 class ScriptError(Exception):
