@@ -7,14 +7,14 @@
 ສ້າງທີລະບົດ (1 request/ບົດ), ຕໍ່ກັນດ້ວຍຊ່ວງງຽບ 0.7 ວິ → <project>/voice.wav, ແລ້ວ script ໃຊ້ `voice: file:voice.wav`.
 Chapter WAVs are cached in <project>/.cache/duo/ so a re-run only re-synthesizes changed chapters.
 """
-import base64, hashlib, json, os, sys, urllib.error, urllib.request, wave, io
+import base64, hashlib, json, os, sys, time, urllib.error, urllib.request, wave, io
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, ".claude/skills/lao-football-video/scripts"))
 from laostudio import script as S, laotext  # noqa: E402
 
 SPEAKERS = {"ຈັນທີ": ("Chanthy", "Zephyr"), "ໂຄ້ດ": ("Coach", "Charon")}
-MODELS = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts", "gemini-3.1-flash-tts-preview"]
+MODELS = os.environ.get("DUO_MODELS", "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts").split(",")
 API = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
 SR = 24000
 
@@ -34,15 +34,31 @@ def chapter_parts(ch, say):
     return parts
 
 
+LEGACY = {"gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"}  # "Name: text" format
+
+
 def synth(parts):
-    body = {"contents": [{"role": "user", "parts": [{"text": t, "speechMetadata": {"speaker": s}} for s, t in parts]}],
+    for model in MODELS:
+        r = _synth(parts, model)
+        if r:
+            return r
+    sys.exit("ທຸກໂມເດລໃຊ້ບໍ່ໄດ້ (ໂຄຕ້າ/ບໍ່ວ່າງ)")
+
+
+def _synth(parts, model):
+    if model in LEGACY:
+        contents = [{"parts": [{"text": "TTS the following conversation in Lao between " + " and ".join(n for n, _ in SPEAKERS.values())
+                                + ":\n" + "\n".join(f"{s}: {t}" for s, t in parts)}]}]
+    else:
+        contents = [{"role": "user", "parts": [{"text": t, "speechMetadata": {"speaker": s}} for s, t in parts]}]
+    body = {"contents": contents,
             "generationConfig": {"responseModalities": ["AUDIO"], "speechConfig": {"multiSpeakerVoiceConfig": {
                 "speakerVoiceConfigs": [{"speaker": n, "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v}}}
                                         for n, v in SPEAKERS.values()]}}}}
     headers = {"Content-Type": "application/json"}
     if os.environ.get("GEMINI_API_KEY"):
         headers["x-goog-api-key"] = os.environ["GEMINI_API_KEY"]
-    for model in MODELS:
+    if True:
         try:
             r = json.load(urllib.request.urlopen(urllib.request.Request(API.format(model), data=json.dumps(body).encode(),
                                                                          headers=headers), timeout=600))
@@ -51,10 +67,14 @@ def synth(parts):
                 w = wave.open(io.BytesIO(d)); assert w.getframerate() == SR; d = w.readframes(w.getnframes())
             return d, model
         except urllib.error.HTTPError as e:
-            print(f"  {model}: HTTP {e.code} {e.read()[:150]!r}", file=sys.stderr)
+            msg = e.read()
+            print(f"  {model}: HTTP {e.code} {msg[:150]!r}", file=sys.stderr)
+            if e.code == 429 and b"PerMinute" in msg and b"PerDay" not in msg:
+                time.sleep(65)                                  # per-minute limit: wait and retry once
+                return _synth(parts, model)
             if e.code not in (429, 500, 503):
                 sys.exit(1)
-    sys.exit("ທຸກໂມເດລໃຊ້ບໍ່ໄດ້ (ໂຄຕ້າ/ບໍ່ວ່າງ)")
+    return None
 
 
 def main():
@@ -71,9 +91,10 @@ def main():
         if "--dry" in sys.argv:
             print(f"ບົດ {i}: {len(parts)} ທ່ອນ, {chars} ຕົວອັກສອນ, ~{chars / 11.5:.0f} ວິ"); continue
         if os.path.exists(f):
-            d, model = open(f, "rb").read(), "cache"
+            d = open(f, "rb").read()
+            model = "cache:" + (open(f + ".model").read() if os.path.exists(f + ".model") else "?")
         else:
-            d, model = synth(parts); open(f, "wb").write(d)
+            d, model = synth(parts); open(f, "wb").write(d); open(f + ".model", "w").write(model); time.sleep(20)
         used.append(model)
         print(f"ບົດ {i} '{ch['title']}': {len(d) / 2 / SR:.1f} ວິ  ({model})", flush=True)
         pcm += d + b"\0\0" * int(0.7 * SR)
