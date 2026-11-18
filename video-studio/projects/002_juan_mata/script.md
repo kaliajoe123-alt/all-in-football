@@ -86,19 +86,19 @@ hashtags: "#JuanMata #ເຕະບານ #ManUtd #Chelsea #Spain #football #ALLI
 [spk: ໂຄ້ດ | img: Vicente Calderón Stadium by BruceW | stat: ນາທີທີ 4 = ຍິງປະຕູໃນນັດຊິງ | src: Copa del Rey final, 16 Apr 2008] ໃນນັດຊິງປີ 2008, ລາວຍິງປະຕູຕັ້ງແຕ່ *ນາທີທີ 4*, ຊ່ວຍທີມຄວ້າຖ້ວຍ.
 [spk: ຈັນທີ | img: Vicente Calderon stadium | stat: 3-1 = Valencia ຊະນະ Getafe | src: Copa del Rey final, 16 Apr 2008] ນັດນັ້ນ Valencia ຊະນະ Getafe 3-1, ແລະ ມັນແມ່ນ *ແຊ້ມອາຊີບໃບທຳອິດ* ໃນຊີວິດຂອງລາວ.
 [spk: ຈັນທີ | img: Mestalla stadium] ແຟນບານ Valencia ຮັກລາວທັນທີ, ເພາະລາວຫຼິ້ນງາມ ແລະ ຍິ້ມຕະຫຼອດ.
-[spk: ໂຄ້ດ | img: CR7-Mata-Alba; Juan Matas free kick] ສັງເກດສະໄຕລ໌ການຫຼິ້ນ, ລາວເປັນ *ກອງກາງຕົວສ້າງ* ທີ່ຕົວບໍ່ໃຫຍ່, ບໍ່ໄວ, ແຕ່ຄິດໄວກວ່າທຸກຄົນ.
-[spk: ໂຄ້ດ | img: Juan Matas free kick | text: ຕີນຊ້າຍ *ວິເສດ* // ສາຍຕາເຫັນຊ່ອງ] ຕີນຊ້າຍຂອງລາວ ຈ່າຍບານຜ່ານຊ່ອງແຄບໆ ໄດ້ຄືກັບສອດເຂັມ.
+[spk: ໂຄ້ດ | img: CR7-Mata-Alba; Juan Matas free kick (2)] ສັງເກດສະໄຕລ໌ການຫຼິ້ນ, ລາວເປັນ *ກອງກາງຕົວສ້າງ* ທີ່ຕົວບໍ່ໃຫຍ່, ບໍ່ໄວ, ແຕ່ຄິດໄວກວ່າທຸກຄົນ.
+[spk: ໂຄ້ດ | img: Juan Matas free kick (2); Juan Matas free kick | text: ຕີນຊ້າຍ *ວິເສດ* // ສາຍຕາເຫັນຊ່ອງ] ຕີນຊ້າຍຂອງລາວ ຈ່າຍບານຜ່ານຊ່ອງແຄບໆ ໄດ້ຄືກັບສອດເຂັມ.
 [spk: ຈັນທີ | img: Mestalla Stadium Valencia vs Villarreal 2026.7; CR7-Mata-Alba | stat: 174 / 46 = ນັດ / ປະຕູ ກັບ Valencia | src: Vavel (ທຸກລາຍການ)] ສີ່ປີກັບ Valencia, ລາວລົງຫຼິ້ນປະມານ *174 ນັດ*, ຍິງໄປ 46 ປະຕູ.
 [spk: ໂຄ້ດ | img: Spain U21 football team 2011 | stat: ແຊ້ມ = ຢູໂຣ ລຸ້ນບໍ່ເກີນ 21 ປີ 2011 | src: UEFA U-21 Euro 2011] ປີ 2011 ລາວພາສະເປນ ລຸ້ນບໍ່ເກີນ 21 ປີ ຄວ້າແຊ້ມຢູໂຣບ, ແລະ ເປັນ *ດາວເດັ່ນ* ຂອງທົວນາເມັນ.
 [spk: ຈັນທີ | img: Chelsea v Spurs 2 May 2016 fans on terrace | sfx: whoosh] ແລ້ວທີມໃຫຍ່ຈາກອັງກິດ ກໍໂທມາ.
 
 # Chelsea — ຄືນມະຫັດສະຈັນ
 [spk: ໂຄ້ດ | img: Juan Mata Chelsea | label: Juan Mata · Chelsea | stat: 23.5 ລ້ານປອນ = ຄ່າຕົວ ປີ 2011 | src: Valencia CF / Chelsea FC, 24 Aug 2011] ເດືອນສິງຫາ 2011, *Chelsea* ຈ່າຍ 23.5 ລ້ານປອນ ເອົາ Mata ມາລອນດອນ.
-[spk: ຈັນທີ | img: Stamford Bridge Chelsea fans] ລະດູການທຳອິດ, ລາວກາຍເປັນຂວັນໃຈຂອງແຟນບານ Chelsea ທັນທີ.
+[spk: ຈັນທີ | img: Chelsea FC v Paris Saint-Germain, 8 April 2014 (6)] ລະດູການທຳອິດ, ລາວກາຍເປັນຂວັນໃຈຂອງແຟນບານ Chelsea ທັນທີ.
 [spk: ໂຄ້ດ | img: Allianz Arena Munich | text: ນັດຊິງ *Champions League* // 19 ພຶດສະພາ 2012] ແລ້ວກໍມາເຖິງຄືນທີ່ທຸກຄົນຈື່ໄດ້, ນັດຊິງ *Champions League* ປີ 2012 ພົບ Bayern ຢູ່ເຢຍລະມັນ.
 [spk: ຈັນທີ | img: Allianz Arena 2012 Champions League final] Bayern ຍິງນຳ 1-0 ໃນນາທີທີ 83, ແຟນບານ Chelsea ເລີ່ມໝົດຫວັງແລ້ວ.
 [spk: ໂຄ້ດ | img: Didier Drogba Chelsea | label: Didier Drogba | flash] Mata ເຕະມຸມ, Drogba ໂດດໂຂກ, *ປະຕູ!* ຕີເສີມ 1-1 ໃນນາທີທີ 88.
-[spk: ຈັນທີ | img: Allianz Arena 2012 Champions League Final #2] ເກມໄປຍິງຈຸດໂທດ, ແລະ ຄົນທຳອິດທີ່ພາດ ກໍຄື Mata ເອງ.
+[spk: ຈັນທີ | img: Juan Mata Manuel Neuer penalty kick Champions League Final 2012] ເກມໄປຍິງຈຸດໂທດ, ແລະ ຄົນທຳອິດທີ່ພາດ ກໍຄື Mata ເອງ.
 [spk: ຈັນທີ | img: Didier Drogba & Fernando Torres & Juan Mata; Juan Mata 271801 | flash] ແຕ່ເພື່ອນໆແບກລາວໄວ້, Chelsea ຊະນະ ແລະ ໄດ້ແຊ້ມຢູໂຣບ *ເປັນເທື່ອທຳອິດ* ໃນປະຫວັດສາດ!
 [spk: ໂຄ້ດ | img: Wembley Stadium | stat: ແຊ້ມ = ຖ້ວຍ FA 2012 | src: The FA] ລະດູການດຽວກັນ ລາວຈ່າຍບານໃຫ້ Ramires ຍິງ ໃນນັດຊິງຖ້ວຍ FA, ໄດ້ແຊ້ມສອງລາຍການໃນປີດຽວ.
 [spk: ຈັນທີ | img: Wembley Stadium London | stat: 2-1 = Chelsea ຊະນະ Liverpool | src: FA Cup final, 5 May 2012] ນັດນັ້ນ Chelsea ຊະນະ Liverpool 2-1 ທີ່ Wembley, ລູກຈ່າຍທະລຸຊ່ອງຂອງລາວ ເປີດທາງໃຫ້ປະຕູທຳອິດ.
@@ -142,7 +142,7 @@ hashtags: "#JuanMata #ເຕະບານ #ManUtd #Chelsea #Spain #football #ALLI
 
 # ເດີນທາງຮອບໂລກ
 [spk: ໂຄ້ດ | img: Rams Park Galatasaray stadium; Juan Mata (55649266514) | label: Galatasaray | stat: ແຊ້ມ = ຊູເປີລີກ ຕວກກີ 2022-23 | src: Süper Lig 2022-23, fbref] ລາວໄປຕໍ່ທີ່ *Galatasaray* ປະເທດຕວກກີ, ແລະ ໄດ້ແຊ້ມລີກທັນທີ.
-[spk: ຈັນທີ | img: Noevir Stadium Kobe; Kobe Japan city | label: Vissel Kobe | stat: ແຊ້ມ = ເຈລີກ ຍີ່ປຸ່ນ 2023 | src: J1 League 2023] ແລ້ວກໍບິນໄປຍີ່ປຸ່ນ ກັບ *Vissel Kobe*, ປີນັ້ນທີມໄດ້ແຊ້ມລີກ ເທື່ອທຳອິດໃນປະຫວັດສາດ.
+[spk: ຈັນທີ | img: Inside View of Kobe Wing Stadium | label: Vissel Kobe | stat: ແຊ້ມ = ເຈລີກ ຍີ່ປຸ່ນ 2023 | src: J1 League 2023] ແລ້ວກໍບິນໄປຍີ່ປຸ່ນ ກັບ *Vissel Kobe*, ປີນັ້ນທີມໄດ້ແຊ້ມລີກ ເທື່ອທຳອິດໃນປະຫວັດສາດ.
 [spk: ໂຄ້ດ | img: Western Sydney Wanderers Fans 12 April 2013 | label: Western Sydney Wanderers] ປີ 2024 ລາວໄປອົດສະຕຣາລີ ກັບ *Western Sydney Wanderers*.
 [spk: ຈັນທີ | img: Melbourne Victory Training at AAMI Park (1); Juan Mata Melbourne Victory Signing Press Conference | label: Melbourne Victory | stat: 13 = ແອັດຊິດ ລະດູການ 2025-26 | src: A-Leagues 2025-26] ແລ້ວປີ 2025 ຍ້າຍໄປ *Melbourne Victory*, ຈ່າຍບານໃຫ້ເພື່ອນຍິງ 13 ເທື່ອ.
 [spk: ໂຄ້ດ | img: Juan Mata Melbourne Victory Signing Press Conference | stat: ລາງວັນ = Johnny Warren Medal 2026 | src: A-Leagues, 2025-26] ໃກ້ອາຍຸ 38 ປີ ແຕ່ຍັງຄວ້າລາງວັນ *Johnny Warren Medal*, ນັກເຕະຍອດຢ້ຽມຂອງລີກ!
