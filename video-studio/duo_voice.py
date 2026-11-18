@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""ສ້າງສຽງພາກ 2 ຄົນ (Gemini multi-speaker) ຈາກ script.md ທີ່ທຸກແຖວມີ `spk:`.
+
+  python3 video-studio/duo_voice.py video-studio/projects/<ຊື່> [--dry]
+ຄົນເວົ້າ → ສຽງ (ຈາກ .claude/skills/lao-voices/voices.json ຕາມຊື່ຫຼິ້ນ):
+  ຈັນທີ = (ຜູ້ຍິງ) Zephyr · ໂຄ້ດ = (ດຸດັນ) Charon
+ສ້າງທີລະບົດ (1 request/ບົດ), ຕໍ່ກັນດ້ວຍຊ່ວງງຽບ 0.7 ວິ → <project>/voice.wav, ແລ້ວ script ໃຊ້ `voice: file:voice.wav`.
+Chapter WAVs are cached in <project>/.cache/duo/ so a re-run only re-synthesizes changed chapters.
+"""
+import base64, hashlib, json, os, sys, urllib.error, urllib.request, wave, io
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, ".claude/skills/lao-football-video/scripts"))
+from laostudio import script as S, laotext  # noqa: E402
+
+SPEAKERS = {"ຈັນທີ": ("Chanthy", "Zephyr"), "ໂຄ້ດ": ("Coach", "Charon")}
+MODELS = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts", "gemini-3.1-flash-tts-preview"]
+API = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
+SR = 24000
+
+
+def chapter_parts(ch, say):
+    parts = []
+    for l in ch["lines"]:
+        spk = l["d"].get("spk")
+        if spk not in SPEAKERS:
+            sys.exit(f"ແຖວ {l['no']}: spk ຕ້ອງເປັນ {list(SPEAKERS)} (ໄດ້ '{spk}')")
+        spoken = laotext.speech_plan(l["text"], say)[1].strip()
+        name = SPEAKERS[spk][0]
+        if parts and parts[-1][0] == name:
+            parts[-1] = (name, parts[-1][1] + " " + spoken)
+        else:
+            parts.append((name, spoken))
+    return parts
+
+
+def synth(parts):
+    body = {"contents": [{"role": "user", "parts": [{"text": t, "speechMetadata": {"speaker": s}} for s, t in parts]}],
+            "generationConfig": {"responseModalities": ["AUDIO"], "speechConfig": {"multiSpeakerVoiceConfig": {
+                "speakerVoiceConfigs": [{"speaker": n, "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v}}}
+                                        for n, v in SPEAKERS.values()]}}}}
+    headers = {"Content-Type": "application/json"}
+    if os.environ.get("GEMINI_API_KEY"):
+        headers["x-goog-api-key"] = os.environ["GEMINI_API_KEY"]
+    for model in MODELS:
+        try:
+            r = json.load(urllib.request.urlopen(urllib.request.Request(API.format(model), data=json.dumps(body).encode(),
+                                                                         headers=headers), timeout=600))
+            d = base64.b64decode(r["candidates"][0]["content"]["parts"][0]["inlineData"]["data"])
+            if d[:4] == b"RIFF":
+                w = wave.open(io.BytesIO(d)); assert w.getframerate() == SR; d = w.readframes(w.getnframes())
+            return d, model
+        except urllib.error.HTTPError as e:
+            print(f"  {model}: HTTP {e.code} {e.read()[:150]!r}", file=sys.stderr)
+            if e.code not in (429, 500, 503):
+                sys.exit(1)
+    sys.exit("ທຸກໂມເດລໃຊ້ບໍ່ໄດ້ (ໂຄຕ້າ/ບໍ່ວ່າງ)")
+
+
+def main():
+    proj = sys.argv[1]
+    doc = S.parse(os.path.join(proj, "script.md"))
+    say = doc["meta"]["say"]
+    cache = os.path.join(proj, ".cache", "duo"); os.makedirs(cache, exist_ok=True)
+    pcm, used = b"", []
+    for i, ch in enumerate(doc["chapters"]):
+        parts = chapter_parts(ch, say)
+        chars = sum(len(t) for _, t in parts)
+        key = hashlib.sha1(json.dumps([parts, SPEAKERS], ensure_ascii=False).encode()).hexdigest()[:12]
+        f = os.path.join(cache, f"{i:02d}_{key}.pcm")
+        if "--dry" in sys.argv:
+            print(f"ບົດ {i}: {len(parts)} ທ່ອນ, {chars} ຕົວອັກສອນ, ~{chars / 11.5:.0f} ວິ"); continue
+        if os.path.exists(f):
+            d, model = open(f, "rb").read(), "cache"
+        else:
+            d, model = synth(parts); open(f, "wb").write(d)
+        used.append(model)
+        print(f"ບົດ {i} '{ch['title']}': {len(d) / 2 / SR:.1f} ວິ  ({model})", flush=True)
+        pcm += d + b"\0\0" * int(0.7 * SR)
+    if "--dry" in sys.argv:
+        return
+    out = os.path.join(proj, "voice.wav")
+    with wave.open(out, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes(pcm)
+    print(f"{out}: {len(pcm) / 2 / SR / 60:.1f} ນາທີ · ໂມເດລ: {sorted(set(used))}")
+
+
+if __name__ == "__main__":
+    main()
