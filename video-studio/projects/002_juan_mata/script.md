@@ -7,6 +7,7 @@ aspect: "16:9"
 voice: file:voice.wav     # ສຽງ 2 ຄົນ (Gemini): ຈັນທີ (ຜູ້ຍິງ, Zephyr) + ໂຄ້ດບອລ (ດຸດັນ, Charon), ເລັ່ງໄວ 25%
 music: epic
 tighten: false
+voice_tempo: 1.25       # ສະເພາະຄລິບນີ້: ໄວຂຶ້ນ 25%
 cta: ກົດຕິດຕາມ ແລ້ວຄອມເມັ້ນບອກແດ່!
 say:
   Juan Mata: ຮວນ ມາຕາ

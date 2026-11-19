@@ -13,10 +13,10 @@ from .footage import VID_EXT
 
 LAYOUT = {
     "16:9": dict(W=1920, H=1080, card=(312, 100, 1296, 729), cap_y=966, cap_size=54, cap_w=1560, cap_lines=1,
-                 logo_w=150, logo_xy=(1714, 40), badge_xy=(56, 40), handle_y=846, title_size=108, title_w=1560,
+                 logo_w=120, logo_xy=(1744, 30), badge_xy=(56, 40), handle_y=846, title_size=108, title_w=1560,
                  title_y=500, label_size=46, stat_num=150, stat_cap=42, chapter_size=120, margin=56),
     "9:16": dict(W=1080, H=1920, card=(54, 440, 972, 729), cap_y=1338, cap_size=60, cap_w=950, cap_lines=2,
-                 logo_w=150, logo_xy=(876, 236), badge_xy=(54, 246), handle_y=1188, title_size=96, title_w=960,
+                 logo_w=120, logo_xy=(906, 226), badge_xy=(54, 246), handle_y=1188, title_size=96, title_w=960,
                  title_y=800, label_size=46, stat_num=140, stat_cap=42, chapter_size=104, margin=54),
 }
 KB = ["in", "left", "out", "right"]
@@ -357,7 +357,12 @@ class Renderer:
                 if self.meta["aspect"] == "9:16":             # sits on the card's top edge
                     cx_, cy_ = x + w - 20 - iw / 2, y + ih * 0.2
                 else:                                         # hangs off the card's right edge (clear of faces)
-                    cx_, cy_ = min(self.W - 30 - iw / 2, x + w + 96 - iw / 2), y + 34 + ih / 2
+                    cx_ = min(self.W - 30 - iw / 2, x + w + 96 - iw / 2)
+                    top = y + 34
+                    lx, ly = self.L["logo_xy"]                # never cover the channel logo (top-right)
+                    if cx_ + iw / 2 > lx - 12:
+                        top = max(top, ly + self.logo.size[1] + 16)
+                    cy_ = top + ih / 2
                 gfx.paste(frame, sp, cx_, cy_, alpha=gfx.clamp(p * 2), scale=0.55 + 0.45 * gfx.back(p), anchor="c")
         if sh.get("quote"):
             sp = self._quote(sh["quote"], w - 80)
@@ -427,7 +432,8 @@ class Renderer:
         th, cy = self.th, self.H * 0.44
         big = self._logo(int(self.L["logo_w"] * 2.4))
         p = (lt - 0.3) / 0.35
-        gfx.paste(frame, big, self.W / 2, cy - 190, alpha=gfx.clamp(p * 2), scale=0.6 + 0.4 * gfx.back(p), anchor="c")
+        gfx.paste(frame, big, self.W / 2, cy - 70 - big.size[1] / 2, alpha=gfx.clamp(p * 2),
+                  scale=0.6 + 0.4 * gfx.back(p), anchor="c")    # bottom stays clear of the follow button
         btn = gfx.pill(th.get("follow", "ກົດຕິດຕາມ") + "  +", 76, (255, 255, 255), self.acc + (255,), pad_x=64,
                        pad_y=16, radius=60)
         btn, m = gfx.shadowed(btn, blur=14, offset=(0, 10), alpha=120)

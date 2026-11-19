@@ -4,7 +4,7 @@
   python3 video-studio/duo_voice.py video-studio/projects/<ຊື່> [--dry]
 ຄົນເວົ້າ → ສຽງ (ຈາກ .claude/skills/lao-voices/voices.json ຕາມຊື່ຫຼິ້ນ):
   ຈັນທີ = (ຜູ້ຍິງ) Zephyr · ໂຄ້ດ = (ດຸດັນ) Charon
-ສ້າງທີລະບົດ (1 request/ບົດ), ຕໍ່ກັນດ້ວຍຊ່ວງງຽບ 0.7 ວິ → <project>/voice.wav, ແລ້ວ script ໃຊ້ `voice: file:voice.wav`.
+ສ້າງທີລະບົດ (1 request/ບົດ), ຕໍ່ກັນດ້ວຍຊ່ວງງຽບ 0.7 ວິ → <project>/voice.wav (ເລັ່ງໄວຕາມ `voice_tempo:` ໃນ script, ຄ່າເລີ່ມຕົ້ນ 1.0), ແລ້ວ script ໃຊ້ `voice: file:voice.wav`.
 Chapter WAVs are cached in <project>/.cache/duo/ so a re-run only re-synthesizes changed chapters.
 """
 import base64, hashlib, json, os, sys, time, urllib.error, urllib.request, wave, io
@@ -113,7 +113,7 @@ def main():
     raw = os.path.join(proj, ".cache", "duo", "voice_raw.wav")
     with wave.open(raw, "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes(pcm)
-    tempo = float(os.environ.get("DUO_TEMPO", "1.25"))          # Joe: ໄວຂຶ້ນ 20-30% (pitch ຄືເດີມ)
+    tempo = float(os.environ.get("DUO_TEMPO") or doc["meta"].get("voice_tempo") or 1.0)  # ຕັ້ງສະເພາະຄລິບ: voice_tempo: 1.25
     import subprocess
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-af", f"atempo={tempo}", out], check=True)
     dur = len(pcm) / 2 / SR / tempo
