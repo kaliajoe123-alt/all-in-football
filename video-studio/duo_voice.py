@@ -17,6 +17,7 @@ SPEAKERS = {"ຈັນທີ": ("Chanthy", "Zephyr"), "ໂຄ້ດ": ("Coach", 
 MODELS = os.environ.get("DUO_MODELS", "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts").split(",")
 API = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
 SR = 24000
+MAX_CHARS = int(os.environ.get("DUO_MAX_CHARS", "1500"))
 
 
 def chapter_parts(ch, say):
@@ -83,8 +84,16 @@ def main():
     say = doc["meta"]["say"]
     cache = os.path.join(proj, ".cache", "duo"); os.makedirs(cache, exist_ok=True)
     pcm, used = b"", []
-    for i, ch in enumerate(doc["chapters"]):
-        parts = chapter_parts(ch, say)
+    # group chapters into batches of ~MAX_CHARS so a whole video needs only a few requests
+    batches, cur = [], []
+    for ch in doc["chapters"]:
+        if cur and sum(len(t) for c in cur for _, t in chapter_parts(c, say)) + sum(len(t) for _, t in chapter_parts(ch, say)) > MAX_CHARS:
+            batches.append(cur); cur = []
+        cur.append(ch)
+    batches.append(cur)
+    for i, chs in enumerate(batches):
+        ch = {"title": " + ".join(c["title"] for c in chs)}
+        parts = [p for c in chs for p in chapter_parts(c, say)]
         chars = sum(len(t) for _, t in parts)
         key = hashlib.sha1(json.dumps([parts, SPEAKERS], ensure_ascii=False).encode()).hexdigest()[:12]
         f = os.path.join(cache, f"{i:02d}_{key}.pcm")
@@ -101,9 +110,14 @@ def main():
     if "--dry" in sys.argv:
         return
     out = os.path.join(proj, "voice.wav")
-    with wave.open(out, "wb") as w:
+    raw = os.path.join(proj, ".cache", "duo", "voice_raw.wav")
+    with wave.open(raw, "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes(pcm)
-    print(f"{out}: {len(pcm) / 2 / SR / 60:.1f} ນາທີ · ໂມເດລ: {sorted(set(used))}")
+    tempo = float(os.environ.get("DUO_TEMPO", "1.25"))          # Joe: ໄວຂຶ້ນ 20-30% (pitch ຄືເດີມ)
+    import subprocess
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-af", f"atempo={tempo}", out], check=True)
+    dur = len(pcm) / 2 / SR / tempo
+    print(f"{out}: {dur / 60:.1f} ນາທີ (ໄວ x{tempo}) · ໂມເດລ: {sorted(set(used))}")
 
 
 if __name__ == "__main__":
